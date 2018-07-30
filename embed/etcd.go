@@ -48,6 +48,7 @@ const (
 )
 
 // Etcd contains a running etcd server and its listeners.
+// Etcd包含了一个正在运行的etcd server以及它的listeners
 type Etcd struct {
 	Peers   []net.Listener
 	Clients []net.Listener
@@ -61,6 +62,9 @@ type Etcd struct {
 // StartEtcd launches the etcd server and HTTP handlers for client/server communication.
 // The returned Etcd.Server is not guaranteed to have joined the cluster. Wait
 // on the Etcd.Server.ReadyNotify() channel to know when it completes and is ready for use.
+// StartEtcd启动etcd server以及HTTP handlers用于处理client/server间的通信
+// 返回的Etcd.Server并不保证已经加入集群了
+// 等待Etcd.Server.ReadyNotify() channel返回的结果，从而知道什么时候完成并可以使用了
 func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 	if err = inCfg.Validate(); err != nil {
 		return nil, err
@@ -74,9 +78,11 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 		}
 	}()
 
+	// 启动监听raft中的peer节点
 	if e.Peers, err = startPeerListeners(cfg); err != nil {
 		return
 	}
+	// 启动监听client节点
 	if e.sctxs, err = startClientListeners(cfg); err != nil {
 		return
 	}
@@ -89,6 +95,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 		token   string
 	)
 
+	// 根据是否存在wal dir来判断,member是否初始化
 	if !isMemberInitialized(cfg) {
 		urlsmap, token, err = cfg.PeerURLsMapAndToken("etcd")
 		if err != nil {
@@ -96,6 +103,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 		}
 	}
 
+	// 创建etcd server的配置
 	srvcfg := &etcdserver.ServerConfig{
 		Name:                    cfg.Name,
 		ClientURLs:              cfg.ACUrls,
@@ -120,6 +128,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 		ClientCertAuthEnabled:   cfg.ClientTLSInfo.ClientCertAuth,
 	}
 
+	// 新建etcd server
 	if e.Server, err = etcdserver.NewServer(srvcfg); err != nil {
 		return
 	}
@@ -127,6 +136,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 	// buffer channel so goroutines on closed connections won't wait forever
 	e.errc = make(chan error, len(e.Peers)+len(e.Clients)+2*len(e.sctxs))
 
+	// 启动etcd server
 	e.Server.Start()
 	if err = e.serve(); err != nil {
 		return
@@ -311,6 +321,7 @@ func (e *Etcd) serve() (err error) {
 	}
 
 	// Start the peer server in a goroutine
+	// 在一个goroutine中启动peer server
 	ph := v2http.NewPeerHandler(e.Server)
 	for _, l := range e.Peers {
 		go func(l net.Listener) {
@@ -319,6 +330,7 @@ func (e *Etcd) serve() (err error) {
 	}
 
 	// Start a client server goroutine for each listen address
+	// 为每个listen address启动一个client server goroutine
 	ch := http.Handler(&cors.CORSHandler{
 		Handler: v2http.NewClientHandler(e.Server, e.Server.Cfg.ReqTimeout()),
 		Info:    e.cfg.CorsInfo,

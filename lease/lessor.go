@@ -136,6 +136,7 @@ type lessor struct {
 
 	// backend to persist leases. We only persist lease ID and expiry for now.
 	// The leased items can be recovered by iterating all the keys in kv.
+	// backend用来持久化leases，我们现在只持久化lease ID和expiry
 	b backend.Backend
 
 	// minLeaseTTL is the minimum lease TTL that can be granted for a lease. Any
@@ -509,6 +510,7 @@ type Lease struct {
 
 	// mu protects concurrent accesses to itemSet
 	mu      sync.RWMutex
+	// 和lease相关的所有的key的集合
 	itemSet map[LeaseItem]struct{}
 	revokec chan struct{}
 }

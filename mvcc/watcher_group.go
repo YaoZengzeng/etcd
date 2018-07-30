@@ -25,6 +25,7 @@ var (
 	// watchBatchMaxRevs is the maximum distinct revisions that
 	// may be sent to an unsynced watcher at a time. Declared as
 	// var instead of const for testing purposes.
+	// watchBatchMaxRevs是一次性能够发送给一个unsynced watcher的最大的，不同的revisions
 	watchBatchMaxRevs = 1000
 )
 
@@ -77,6 +78,7 @@ func (wb watcherBatch) add(w *watcher, ev mvccpb.Event) {
 
 // newWatcherBatch maps watchers to their matched events. It enables quick
 // events look up by watcher.
+// newWatcherBatch将watchers映射到和它们匹配的events，从而可以通过watcher来进行快速的events lookup
 func newWatcherBatch(wg *watcherGroup, evs []mvccpb.Event) watcherBatch {
 	if len(wg.watchers) == 0 {
 		return nil
@@ -145,10 +147,13 @@ func (w watcherSetByKey) delete(wa *watcher) bool {
 // watcherGroup is a collection of watchers organized by their ranges
 type watcherGroup struct {
 	// keyWatchers has the watchers that watch on a single key
+	// keyWatchers是监听同一个key的watchers
 	keyWatchers watcherSetByKey
 	// ranges has the watchers that watch a range; it is sorted by interval
+	// ranges是监听一个range的watcher
 	ranges adt.IntervalTree
 	// watchers is the set of all watchers
+	// watchers是两类watcher的集合
 	watchers watcherSet
 }
 
@@ -181,6 +186,7 @@ func (wg *watcherGroup) add(wa *watcher) {
 }
 
 // contains is whether the given key has a watcher in the group.
+// contains用于检测group中是否有key对应的watcher
 func (wg *watcherGroup) contains(key string) bool {
 	_, ok := wg.keyWatchers[key]
 	return ok || wg.ranges.Contains(adt.NewStringAffinePoint(key))

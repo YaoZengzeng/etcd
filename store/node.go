@@ -36,6 +36,9 @@ var Permanent time.Time
 // node is the basic element in the store system.
 // A key-value pair will have a string value
 // A directory will have a children map
+// node是store system里面的基本元素
+// 一个key-value对会有一个string value
+// 一个directory会有一个children map
 type node struct {
 	Path string
 
@@ -80,7 +83,9 @@ func newDir(store *store, nodePath string, createdIndex uint64, parent *node, ex
 
 // IsHidden function checks if the node is a hidden node. A hidden node
 // will begin with '_'
+// 以'_'开始的节点就是为hidden node
 // A hidden node will not be shown via get command under a directory
+// 对一个目录执行get命令并不会显示hidden node
 // For example if we have /foo/_hidden and /foo/notHidden, get "/foo"
 // will only return /foo/notHidden
 func (n *node) IsHidden() bool {
@@ -90,9 +95,11 @@ func (n *node) IsHidden() bool {
 }
 
 // IsPermanent function checks if the node is a permanent one.
+// 检查节点是否为permanent
 func (n *node) IsPermanent() bool {
 	// we use a uninitialized time.Time to indicate the node is a
 	// permanent one.
+	// 我们用未初始化的time.Time来代表该node为permanent
 	// the uninitialized time.Time should equal zero.
 	return n.ExpireTime.IsZero()
 }
@@ -105,12 +112,15 @@ func (n *node) IsDir() bool {
 }
 
 // Read function gets the value of the node.
+// Read函数获取该节点的value
 // If the receiver node is not a key-value pair, a "Not A File" error will be returned.
 func (n *node) Read() (string, *etcdErr.Error) {
 	if n.IsDir() {
+		// 如果该节点是目录，则返回EcodeNotFile的错误
 		return "", etcdErr.NewError(etcdErr.EcodeNotFile, "", n.store.CurrentIndex)
 	}
 
+	// 否则，直接返回Value
 	return n.Value, nil
 }
 
@@ -202,11 +212,14 @@ func (n *node) Add(child *node) *etcdErr.Error {
 }
 
 // Remove function remove the node.
+// Remove函数移除node
 func (n *node) Remove(dir, recursive bool, callback func(path string)) *etcdErr.Error {
 	if !n.IsDir() { // key-value pair
+		// 如果删除的是key-value pair
 		_, name := path.Split(n.Path)
 
 		// find its parent and remove the node from the map
+		// 找到它的parent并且从children map中移除
 		if n.Parent != nil && n.Parent.Children[name] == n {
 			delete(n.Parent.Children, name)
 		}
@@ -216,6 +229,7 @@ func (n *node) Remove(dir, recursive bool, callback func(path string)) *etcdErr.
 		}
 
 		if !n.IsPermanent() {
+			// 从ttlKeyHeap中移除
 			n.store.ttlKeyHeap.remove(n)
 		}
 

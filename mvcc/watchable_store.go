@@ -46,14 +46,18 @@ type watchableStore struct {
 	*store
 
 	// victims are watcher batches that were blocked on the watch channel
+	// victims是批量的watcher，它们被阻塞在watch channel中
 	victims []watcherBatch
 	victimc chan struct{}
 
 	// contains all unsynced watchers that needs to sync with events that have happened
+	// unsynced包含了所有未同步的watchers，它们需要对已经发生的事件进行同步
 	unsynced watcherGroup
 
 	// contains all synced watchers that are in sync with the progress of the store.
 	// The key of the map is the key that the watcher watches on.
+	// synced包含了所有已经和store同步的synced watchers
+	// map的key就是watcher监听的key
 	synced watcherGroup
 
 	stopc chan struct{}
@@ -274,6 +278,7 @@ func (s *watchableStore) Restore(b backend.Backend) error {
 }
 
 // syncWatchersLoop syncs the watcher in the unsynced map every 100ms.
+// syncWatchersLoop每隔100ms同步一次unsynced map中的watcher
 func (s *watchableStore) syncWatchersLoop() {
 	defer s.wg.Done()
 
@@ -387,10 +392,15 @@ func (s *watchableStore) moveVictims() (moved int) {
 }
 
 // syncWatchers syncs unsynced watchers by:
+// syncWatchers通过如下步骤同步unsynced watchers:
 //	1. choose a set of watchers from the unsynced watcher group
+//	1. 从unsynced watcher group中选择一批watchers
 //	2. iterate over the set to get the minimum revision and remove compacted watchers
+//	2. 遍历这些watcher，从而获得最小的revision并且移除compacted watchers
 //	3. use minimum revision to get all key-value pairs and send those events to watchers
+//	3. 使用minimum revision获取所有的key-value对，并且将这些events发送给watchers
 //	4. remove synced watchers in set from unsynced group and move to synced group
+//	4. 将这些synced watchers从unsynced group移到synced group中
 func (s *watchableStore) syncWatchers() {
 	if s.unsynced.size() == 0 {
 		return
@@ -402,8 +412,11 @@ func (s *watchableStore) syncWatchers() {
 	// in order to find key-value pairs from unsynced watchers, we need to
 	// find min revision index, and these revisions can be used to
 	// query the backend store of key-value pairs
+	// 我们需要找到min revision index，并且这些revisions可以被用于访问backend store
+	// 用于获取key-value对
 	curRev := s.store.currentRev.main
 	compactionRev := s.store.compactMainRev
+	// 从选中的watcher中找到最小的revision.main ID作为遍历bolt的起始位置
 	wg, minRev := s.unsynced.choose(maxWatchersPerSync, curRev, compactionRev)
 	minBytes, maxBytes := newRevBytes(), newRevBytes()
 	revToBytes(revision{main: minRev}, minBytes)
@@ -411,6 +424,8 @@ func (s *watchableStore) syncWatchers() {
 
 	// UnsafeRange returns keys and values. And in boltdb, keys are revisions.
 	// values are actual key-value pairs in backend.
+	// UnsafeRange返回keys和values，在boltdb中，keys是revisions
+	// values是backend中真正的key-value pairs
 	tx := s.store.b.BatchTx()
 	tx.Lock()
 	revs, vs := tx.UnsafeRange(keyBucketName, minBytes, maxBytes, 0)
@@ -425,6 +440,7 @@ func (s *watchableStore) syncWatchers() {
 		eb, ok := wb[w]
 		if !ok {
 			// bring un-notified watcher to synced
+			// 将没有得到通知的watcher放入synced
 			s.synced.add(w)
 			s.unsynced.delete(w)
 			continue
@@ -440,6 +456,7 @@ func (s *watchableStore) syncWatchers() {
 			if victims == nil {
 				victims = make(watcherBatch)
 			}
+			// 如果事件没有发送成功，则将watcher的victim设置为true
 			w.victim = true
 		}
 
@@ -464,6 +481,7 @@ func (s *watchableStore) syncWatchers() {
 }
 
 // kvsToEvents gets all events for the watchers from all key-value pairs
+// kvsToEvents从所有的key-value pairs中解析出event发送给watchers
 func kvsToEvents(wg *watcherGroup, revs, vals [][]byte) (evs []mvccpb.Event) {
 	for i, v := range vals {
 		var kv mvccpb.KeyValue
@@ -544,18 +562,23 @@ type watcher struct {
 	end []byte
 
 	// victim is set when ch is blocked and undergoing victim processing
+	// 当ch被阻塞并且正在进行victim processing，则victim设置为true
 	victim bool
 
 	// compacted is set when the watcher is removed because of compaction
+	// 当watcher会因为compaction被移除时，compacted为true
 	compacted bool
 
 	// minRev is the minimum revision update the watcher will accept
+	// minRev是watcher最小的能够接受的revision update
 	minRev int64
 	id     WatchID
 
+	// 用来对event进行过滤
 	fcs []FilterFunc
 	// a chan to send out the watch response.
 	// The chan might be shared with other watchers.
+	// 用来发送watch response的chan，这个chan可能其他watchers进行共享
 	ch chan<- WatchResponse
 }
 

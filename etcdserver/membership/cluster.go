@@ -39,6 +39,7 @@ import (
 )
 
 // RaftCluster is a list of Members that belong to the same raft cluster
+// RaftCluster是一系列属于同一个raft cluster的members
 type RaftCluster struct {
 	id    types.ID
 	token string
@@ -51,12 +52,15 @@ type RaftCluster struct {
 	members    map[types.ID]*Member
 	// removed contains the ids of removed members in the cluster.
 	// removed id cannot be reused.
+	// removed包含了集群中已经被移除的members的ids
+	// 已经被移除的id不能再被使用
 	removed map[types.ID]bool
 }
 
 func NewClusterFromURLsMap(token string, urlsmap types.URLsMap) (*RaftCluster, error) {
 	c := NewCluster(token)
 	for name, urls := range urlsmap {
+		// 新建cluster中的各个map
 		m := NewMember(name, urls, token, nil)
 		if _, ok := c.members[m.ID]; ok {
 			return nil, fmt.Errorf("member exists with identical ID %v", m)

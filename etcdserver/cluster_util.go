@@ -31,6 +31,7 @@ import (
 
 // isMemberBootstrapped tries to check if the given member has been bootstrapped
 // in the given cluster.
+// isMemberBootstrapped检查给定的member在给定集群中是否已经初始化了
 func isMemberBootstrapped(cl *membership.RaftCluster, member string, rt http.RoundTripper, timeout time.Duration) bool {
 	rcl, err := getClusterFromRemotePeers(getRemotePeerURLs(cl, member), timeout, false, rt)
 	if err != nil {

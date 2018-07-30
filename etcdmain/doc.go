@@ -13,4 +13,5 @@
 // limitations under the License.
 
 // Package etcdmain contains the main entry point for the etcd binary.
+// etcdmain包含了etcd binary的主入口
 package etcdmain

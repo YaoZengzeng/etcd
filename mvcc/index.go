@@ -32,8 +32,10 @@ type index interface {
 	Insert(ki *keyIndex)
 }
 
+// 将keyIndex存入treeIndex中
 type treeIndex struct {
 	sync.RWMutex
+	// kvindex就是通过一个btree实现的
 	tree *btree.BTree
 }
 

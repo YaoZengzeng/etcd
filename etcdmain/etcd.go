@@ -92,6 +92,7 @@ func startEtcdOrProxyV2() {
 	}
 
 	if cfg.Dir == "" {
+		// 默认的dir设置为"default.etcd"
 		cfg.Dir = fmt.Sprintf("%v.etcd", cfg.Name)
 		plog.Warningf("no data-dir provided, using default data-dir ./%s", cfg.Dir)
 	}
@@ -110,9 +111,11 @@ func startEtcdOrProxyV2() {
 	} else {
 		shouldProxy := cfg.isProxy()
 		if !shouldProxy {
+			// 如果当前节点不是proxy，则启动etcd
 			stopped, errc, err = startEtcd(&cfg.Config)
 			if derr, ok := err.(*etcdserver.DiscoveryError); ok && derr.Err == discovery.ErrFullCluster {
 				if cfg.shouldFallbackToProxy() {
+					// 退化至proxy
 					plog.Noticef("discovery cluster full, falling back to %s", fallbackFlagProxy)
 					shouldProxy = true
 				}
@@ -166,6 +169,9 @@ func startEtcdOrProxyV2() {
 	// for accepting connections. The etcd instance should be
 	// joined with the cluster and ready to serve incoming
 	// connections.
+	// 现在，etcd已经初始化完成了
+	// listener已经在监听端口并且准备接收连接了
+	// etcd实例应该加入集群并且准备服务到来的连接
 	notifySystemd()
 
 	select {
@@ -184,12 +190,14 @@ func startEtcd(cfg *embed.Config) (<-chan struct{}, <-chan error, error) {
 		grpc_prometheus.EnableHandlingTimeHistogram()
 	}
 
+	// 启动etcd server
 	e, err := embed.StartEtcd(cfg)
 	if err != nil {
 		return nil, nil, err
 	}
 	osutil.RegisterInterruptHandler(e.Server.Stop)
 	select {
+	// 等待e.Server加入集群
 	case <-e.Server.ReadyNotify(): // wait for e.Server to join the cluster
 	case <-e.Server.StopNotify(): // publish aborted from 'ErrStopped'
 	}
@@ -335,6 +343,7 @@ func startProxy(cfg *config) error {
 
 // identifyDataDirOrDie returns the type of the data dir.
 // Dies if the datadir is invalid.
+// identifyDataDirOrDie返回data dir的类型，如果非法，就Die
 func identifyDataDirOrDie(dir string) dirType {
 	names, err := fileutil.ReadDir(dir)
 	if err != nil {

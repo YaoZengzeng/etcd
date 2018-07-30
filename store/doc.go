@@ -13,4 +13,5 @@
 // limitations under the License.
 
 // Package store defines etcd's in-memory key/value store.
+// store定义了etcd中内存的key/value存储
 package store

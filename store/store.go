@@ -73,7 +73,9 @@ type TTLOptionSet struct {
 type store struct {
 	Root           *node
 	WatcherHub     *watcherHub
+	// 每次变更，index会加1，每个event都会关联到current index
 	CurrentIndex   uint64
+	// Stats为一系列统计数据
 	Stats          *Stats
 	CurrentVersion int
 	ttlKeyHeap     *ttlKeyHeap  // need to recovery manually
@@ -83,6 +85,7 @@ type store struct {
 }
 
 // New creates a store where the given namespaces will be created as initial directories.
+// New会新建一个store，给定的目录会被创建为初始化目录
 func New(namespaces ...string) Store {
 	s := newStore(namespaces...)
 	s.clock = clockwork.NewRealClock()
@@ -92,13 +95,16 @@ func New(namespaces ...string) Store {
 func newStore(namespaces ...string) *store {
 	s := new(store)
 	s.CurrentVersion = defaultVersion
+	// 创建根目录，根目录的parent为nil
 	s.Root = newDir(s, "/", s.CurrentIndex, nil, Permanent)
 	for _, namespace := range namespaces {
+		// namespace是就是node path，加入根节点中
 		s.Root.Add(newDir(s, namespace, s.CurrentIndex, s.Root, Permanent))
 	}
 	s.Stats = newStats()
 	s.WatcherHub = newWatchHub(1000)
 	s.ttlKeyHeap = newTtlKeyHeap()
+	// 将namespaces以及根目录添加到readonly set中
 	s.readonlySet = types.NewUnsafeSet(append(namespaces, "/")...)
 	return s
 }
@@ -116,8 +122,11 @@ func (s *store) Index() uint64 {
 }
 
 // Get returns a get event.
+// Get返回一个get event
 // If recursive is true, it will return all the content under the node path.
+// 如果recursive为true，它会返回该node path下所有的内容
 // If sorted is true, it will sort the content by keys.
+// 如果sorted为true，它会按key对结果进排序
 func (s *store) Get(nodePath string, recursive, sorted bool) (*Event, error) {
 	var err *etcdErr.Error
 
@@ -125,6 +134,7 @@ func (s *store) Get(nodePath string, recursive, sorted bool) (*Event, error) {
 	defer s.worldLock.RUnlock()
 
 	defer func() {
+		// defer函数对store中的Stats进行更新
 		if err == nil {
 			s.Stats.Inc(GetSuccess)
 			if recursive {
@@ -150,14 +160,18 @@ func (s *store) Get(nodePath string, recursive, sorted bool) (*Event, error) {
 
 	e := newEvent(Get, nodePath, n.ModifiedIndex, n.CreatedIndex)
 	e.EtcdIndex = s.CurrentIndex
+	// 加载填充Node的内容
 	e.Node.loadInternalNode(n, recursive, sorted, s.clock)
 
 	return e, nil
 }
 
 // Create creates the node at nodePath. Create will help to create intermediate directories with no ttl.
+// Create在nodePath创建node，Create可以用来创建没有ttl的中间目录
 // If the node has already existed, create will fail.
+// 如果node已经存在了，则create会失败
 // If any node on the path is a file, create will fail.
+// 如果path中的任何node是一个文件，则create也会失败
 func (s *store) Create(nodePath string, dir bool, value string, unique bool, expireOpts TTLOptionSet) (*Event, error) {
 	var err *etcdErr.Error
 
@@ -175,6 +189,7 @@ func (s *store) Create(nodePath string, dir bool, value string, unique bool, exp
 		reportWriteFailure(Create)
 	}()
 
+	// 内部创建节点，生成一个event
 	e, err := s.internalCreate(nodePath, dir, value, unique, false, expireOpts.ExpireTime, Create)
 	if err != nil {
 		return nil, err
@@ -466,6 +481,7 @@ func (s *store) Watch(key string, recursive, stream bool, sinceIndex uint64) (Wa
 }
 
 // walk walks all the nodePath and apply the walkFunc on each directory
+// walk遍历nodePath，对每个目录执行walkFunc函数
 func (s *store) walk(nodePath string, walkFunc func(prev *node, component string) (*node, *etcdErr.Error)) (*node, *etcdErr.Error) {
 	components := strings.Split(nodePath, "/")
 
@@ -477,6 +493,7 @@ func (s *store) walk(nodePath string, walkFunc func(prev *node, component string
 			return curr, nil
 		}
 
+		// 对路径中的每个元素执行walkFunc函数
 		curr, err = walkFunc(curr, components[i])
 		if err != nil {
 			return nil, err
@@ -571,12 +588,14 @@ func (s *store) internalCreate(nodePath string, dir bool, value string, unique, 
 	nodePath = path.Clean(path.Join("/", nodePath))
 
 	// we do not allow the user to change "/"
+	// 我们不允许用户改变"/"
 	if s.readonlySet.Contains(nodePath) {
 		return nil, etcdErr.NewError(etcdErr.EcodeRootROnly, "/", currIndex)
 	}
 
 	// Assume expire times that are way in the past are
 	// This can occur when the time is serialized to JS
+	// 如果expireTime早于minExpireTime，则将其设置为Permanent
 	if expireTime.Before(minExpireTime) {
 		expireTime = Permanent
 	}
@@ -584,6 +603,7 @@ func (s *store) internalCreate(nodePath string, dir bool, value string, unique, 
 	dirName, nodeName := path.Split(nodePath)
 
 	// walk through the nodePath, create dirs and get the last directory node
+	// 遍历nodePath，创建目录并且获取最后一个directory node
 	d, err := s.walk(dirName, s.checkDir)
 
 	if err != nil {
@@ -608,6 +628,7 @@ func (s *store) internalCreate(nodePath string, dir bool, value string, unique, 
 
 			n.Remove(false, false, nil)
 		} else {
+			// 如果Node已经存在，且不替换
 			return nil, etcdErr.NewError(etcdErr.EcodeNodeExist, nodePath, currIndex)
 		}
 	}
@@ -617,30 +638,35 @@ func (s *store) internalCreate(nodePath string, dir bool, value string, unique, 
 		valueCopy := value
 		eNode.Value = &valueCopy
 
+		// 调用newKV创建file
 		n = newKV(s, nodePath, value, nextIndex, d, expireTime)
 
 	} else { // create directory
 		eNode.Dir = true
-
+		// 调用newDir创建目录
 		n = newDir(s, nodePath, nextIndex, d, expireTime)
 	}
 
 	// we are sure d is a directory and does not have the children with name n.Name
+	// 我们确保d是一个目录并且没有children的name是n.Name
 	d.Add(n)
 
 	// node with TTL
 	if !n.IsPermanent() {
+		// 如果节点不是permanent，加入ttlKeyHeap
 		s.ttlKeyHeap.push(n)
 
 		eNode.Expiration, eNode.TTL = n.expirationAndTTL(s.clock)
 	}
 
+	// 更新store的CurrentIndex
 	s.CurrentIndex = nextIndex
 
 	return e, nil
 }
 
 // InternalGet gets the node of the given nodePath.
+// InternalGet获取指定nodePath的node
 func (s *store) internalGet(nodePath string) (*node, *etcdErr.Error) {
 	nodePath = path.Clean(path.Join("/", nodePath))
 
@@ -668,6 +694,7 @@ func (s *store) internalGet(nodePath string) (*node, *etcdErr.Error) {
 }
 
 // DeleteExpiredKeys will delete all expired keys
+// DeleteExpiredKeys会删除所有过期的keys
 func (s *store) DeleteExpiredKeys(cutoff time.Time) {
 	s.worldLock.Lock()
 	defer s.worldLock.Unlock()
@@ -679,16 +706,19 @@ func (s *store) DeleteExpiredKeys(cutoff time.Time) {
 		}
 
 		s.CurrentIndex++
+		// 创建过期的event
 		e := newEvent(Expire, node.Path, s.CurrentIndex, node.CreatedIndex)
 		e.EtcdIndex = s.CurrentIndex
 		e.PrevNode = node.Repr(false, false, s.clock)
 
 		callback := func(path string) { // notify function
 			// notify the watchers with deleted set true
+			// 通知watchers并且将deleted设置为true
 			s.WatcherHub.notifyWatchers(e, path, true)
 		}
 
 		s.ttlKeyHeap.pop()
+		// dir, recursive都设置为true
 		node.Remove(true, true, callback)
 
 		reportExpiredKey()
@@ -700,9 +730,13 @@ func (s *store) DeleteExpiredKeys(cutoff time.Time) {
 }
 
 // checkDir will check whether the component is a directory under parent node.
+// checkDir会检查parent node下的组件是否为目录
 // If it is a directory, this function will return the pointer to that node.
+// 如果是一个目录，则返回该节点的pointer
 // If it does not exist, this function will create a new directory and return the pointer to that node.
+// 如果它不存在，该函数会创建一个新的目录并且返回指向该节点的指针
 // If it is a file, this function will return error.
+// 如果它是一个文件，则返回一个error
 func (s *store) checkDir(parent *node, dirName string) (*node, *etcdErr.Error) {
 	node, ok := parent.Children[dirName]
 
@@ -714,6 +748,7 @@ func (s *store) checkDir(parent *node, dirName string) (*node, *etcdErr.Error) {
 		return nil, etcdErr.NewError(etcdErr.EcodeNotDir, node.Path, s.CurrentIndex)
 	}
 
+	// 如果目录节点不存在，就创建一个新的，并返回
 	n := newDir(s, path.Join(parent.Path, dirName), s.CurrentIndex+1, parent, Permanent)
 
 	parent.Children[dirName] = n

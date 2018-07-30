@@ -44,6 +44,7 @@ type WatchStream interface {
 	Watch(key, end []byte, startRev int64, fcs ...FilterFunc) WatchID
 
 	// Chan returns a chan. All watch response will be sent to the returned chan.
+	// Chan返回一个channel，所有的watch response都会发往返回的chan
 	Chan() <-chan WatchResponse
 
 	// RequestProgress requests the progress of the watcher with given ID. The response
@@ -77,14 +78,20 @@ type WatchResponse struct {
 	// modified revision inside Events. For a delayed response to a unsynced
 	// watcher, the revision is greater than the last modified revision
 	// inside Events.
+	// Revision是watchResponse被创建时KV的revision
+	// 对于正常的response，revision应该和Events中最新修改的revision相等，对于unsynced
+	// watchers，revision比Events中最新修改的revision更大
 	Revision int64
 
 	// CompactRevision is set when the watcher is cancelled due to compaction.
+	// 当watcher因为compaction被取消时，会设置CompactRevision
 	CompactRevision int64
 }
 
 // watchStream contains a collection of watchers that share
 // one streaming chan to send out watched events and other control events.
+// watchStream包含了一系列的watchers，它们共享一个streaming chan来发送监听到的event
+// 和其他control event
 type watchStream struct {
 	watchable watchable
 	ch        chan WatchResponse

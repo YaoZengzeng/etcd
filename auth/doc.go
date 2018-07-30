@@ -13,4 +13,5 @@
 // limitations under the License.
 
 // Package auth provides client role authentication for accessing keys in etcd.
+// auth包提供了对于访问etcd中的keys的客户端的身份验证
 package auth

@@ -29,6 +29,7 @@ import (
 )
 
 // ServerConfig holds the configuration of etcd as taken from the command line or discovery.
+// ServerConfig从命令行或者发现获取的参数组成etcd的配置
 type ServerConfig struct {
 	Name           string
 	DiscoveryURL   string

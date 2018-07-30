@@ -13,4 +13,5 @@
 // limitations under the License.
 
 // etcd-dump-logs is a program for analyzing etcd server write ahead logs.
+// etcd-dump-logs用来分析etcd server的write ahead logs
 package main

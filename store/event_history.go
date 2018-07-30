@@ -33,7 +33,9 @@ type EventHistory struct {
 func newEventHistory(capacity int) *EventHistory {
 	return &EventHistory{
 		Queue: eventQueue{
+			// 设置eventQueue的capacity
 			Capacity: capacity,
+			// Events可以存储capacity个Event
 			Events:   make([]*Event, capacity),
 		},
 	}

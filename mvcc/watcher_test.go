@@ -29,6 +29,8 @@ import (
 
 // TestWatcherWatchID tests that each watcher provides unique watchID,
 // and the watched event attaches the correct watchID.
+// TestWatcherWatchID用于检测每个watcher都提供唯一的watchID并且wached event
+// 和正确的watchID相绑定
 func TestWatcherWatchID(t *testing.T) {
 	b, tmpPath := backend.NewDefaultTmpBackend()
 	s := WatchableKV(newWatchableStore(b, &lease.FakeLessor{}, nil))

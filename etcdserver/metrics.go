@@ -72,6 +72,7 @@ func init() {
 func monitorFileDescriptor(done <-chan struct{}) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
+	// 对etcd的文件描述符的使用率进行监控
 	for {
 		used, err := runtime.FDUsage()
 		if err != nil {

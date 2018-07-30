@@ -14,6 +14,7 @@
 
 package store
 
+// eventQueue是一个环形的缓存
 type eventQueue struct {
 	Events   []*Event
 	Size     int

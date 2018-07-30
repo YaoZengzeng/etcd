@@ -26,6 +26,7 @@ import (
 func TestNewStoreWithNamespaces(t *testing.T) {
 	s := newStore("/0", "/1")
 
+	// 如果Get的是目录，返回的是子节点
 	_, err := s.Get("/0", false, false)
 	assert.Nil(t, err, "")
 	_, err = s.Get("/1", false, false)
@@ -37,6 +38,7 @@ func TestStoreGetValue(t *testing.T) {
 	s := newStore()
 	s.Create("/foo", false, "bar", false, TTLOptionSet{ExpireTime: Permanent})
 	var eidx uint64 = 1
+	// 如果Get的是文件，返回的是里面存储的value
 	e, err := s.Get("/foo", false, false)
 	assert.Nil(t, err, "")
 	assert.Equal(t, e.EtcdIndex, eidx, "")
@@ -55,6 +57,7 @@ func TestMinExpireTime(t *testing.T) {
 	s.Create("/foo", false, "Y", false, TTLOptionSet{ExpireTime: fc.Now().Add(3 * time.Second)})
 	fc.Advance(5 * time.Second)
 	// Ensure it hasn't expired
+	// 删除Expired Keys
 	s.DeleteExpiredKeys(fc.Now())
 	var eidx uint64 = 1
 	e, err := s.Get("/foo", true, false)

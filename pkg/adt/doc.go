@@ -13,4 +13,5 @@
 // limitations under the License.
 
 // Package adt implements useful abstract data types.
+// adt实现了有用的抽象数据类型
 package adt

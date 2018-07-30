@@ -45,12 +45,16 @@ type Attributes struct {
 
 type Member struct {
 	ID types.ID `json:"id"`
+	// peer urls
 	RaftAttributes
+	// 客户端的urls
 	Attributes
 }
 
 // NewMember creates a Member without an ID and generates one based on the
 // cluster name, peer URLs, and time. This is used for bootstrapping/adding new member.
+// NewMember创建一个Member，并且基于cluster name, perr URLs以及时间创建一个ID
+// 这用于启动或者添加一个新的member
 func NewMember(name string, peerURLs types.URLs, clusterName string, now *time.Time) *Member {
 	m := &Member{
 		RaftAttributes: RaftAttributes{PeerURLs: peerURLs.StringSlice()},

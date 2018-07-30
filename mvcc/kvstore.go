@@ -70,6 +70,7 @@ type store struct {
 
 	le lease.Lessor
 
+	// currentRev记录了当前的revision
 	currentRev revision
 	// the main revision of the last compaction
 	compactMainRev int64
@@ -90,6 +91,7 @@ type store struct {
 
 // NewStore returns a new store. It is useful to create a store inside
 // mvcc pkg. It should only be used for testing externally.
+// NewStore返回一个新的store，只应该在在外部测试的时候使用
 func NewStore(b backend.Backend, le lease.Lessor, ig ConsistentIndexGetter) *store {
 	s := &store{
 		b:       b,
@@ -692,6 +694,7 @@ func appendMarkTombstone(b []byte) []byte {
 }
 
 // isTombstone checks whether the revision bytes is a tombstone.
+// isTombstone用于检测revision bytes是否为一个tombstone
 func isTombstone(b []byte) bool {
 	return len(b) == markedRevBytesLen && b[markBytePosition] == markTombstone
 }

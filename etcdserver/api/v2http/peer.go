@@ -29,6 +29,7 @@ const (
 )
 
 // NewPeerHandler generates an http.Handler to handle etcd peer requests.
+// NewPeerHandler创建一个http.Handler用于处理来自etcd peer的请求
 func NewPeerHandler(s *etcdserver.EtcdServer) http.Handler {
 	var lh http.Handler
 	l := s.Lessor()

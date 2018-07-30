@@ -41,9 +41,12 @@ func (w *watcher) StartIndex() uint64 {
 
 // notify function notifies the watcher. If the watcher interests in the given path,
 // the function will return true.
+// notify函数通知watcher，如果watcher对给定的路径敢兴趣，该函数就会返回true
 func (w *watcher) notify(e *Event, originalPath bool, deleted bool) bool {
 	// watcher is interested the path in three cases and under one condition
 	// the condition is that the event happens after the watcher's sinceIndex
+	// watcher在三种case以及一种condition下会对path感兴趣，该conditon就是event在watcher的
+	// sinceIndex之后发生
 
 	// 1. the path at which the event happens is the path the watcher is watching at.
 	// For example if the watcher is watching at "/foo" and the event happens at "/foo",
@@ -62,11 +65,18 @@ func (w *watcher) notify(e *Event, originalPath bool, deleted bool) bool {
 		// etcd will hang. eventChan capacity is full when the rate of
 		// notifications are higher than our send rate.
 		// If this happens, we close the channel.
+		// 我们不能block，如果eventChan capacity为full，否则etcd会hang
+		// 当rate of notifications高于send rate，eventChan capacity就会full
+		// 如果发生这样的情况，我们就关闭channel
 		select {
+		// notify就是将event发送到watcher的eventChan中
 		case w.eventChan <- e:
 		default:
 			// We have missed a notification. Remove the watcher.
 			// Removing the watcher also closes the eventChan.
+			// 如果我们错过了一个notification，移除这个watcher
+			// 移除这个watcher也关闭了eventChan
+			// remove是新建watcher时可以配置的函数
 			w.remove()
 		}
 		return true
@@ -76,6 +86,7 @@ func (w *watcher) notify(e *Event, originalPath bool, deleted bool) bool {
 
 // Remove removes the watcher from watcherHub
 // The actual remove function is guaranteed to only be executed once
+// 真正的remove函数保证只会被执行一次
 func (w *watcher) Remove() {
 	w.hub.mutex.Lock()
 	defer w.hub.mutex.Unlock()

@@ -23,7 +23,9 @@ import (
 
 // NodeExtern is the external representation of the
 // internal node with additional fields
+// NodeExtern是internal node添加了一些外部字段之后的外部表示
 // PrevValue is the previous value of the node
+// PrevValue是node之前的值
 // TTL is time to live in second
 type NodeExtern struct {
 	Key           string      `json:"key,omitempty"`
@@ -31,6 +33,7 @@ type NodeExtern struct {
 	Dir           bool        `json:"dir,omitempty"`
 	Expiration    *time.Time  `json:"expiration,omitempty"`
 	TTL           int64       `json:"ttl,omitempty"`
+	// NodeExterns是NodeExtern的集合
 	Nodes         NodeExterns `json:"nodes,omitempty"`
 	ModifiedIndex uint64      `json:"modifiedIndex,omitempty"`
 	CreatedIndex  uint64      `json:"createdIndex,omitempty"`
@@ -38,9 +41,11 @@ type NodeExtern struct {
 
 func (eNode *NodeExtern) loadInternalNode(n *node, recursive, sorted bool, clock clockwork.Clock) {
 	if n.IsDir() { // node is a directory
+		// 如果node是一个目录节点
 		eNode.Dir = true
 
 		children, _ := n.List()
+		// eNode的Nodes就是该节点的所有子节点
 		eNode.Nodes = make(NodeExterns, len(children))
 
 		// we do not use the index in the children slice directly
@@ -64,6 +69,7 @@ func (eNode *NodeExtern) loadInternalNode(n *node, recursive, sorted bool, clock
 		}
 
 	} else { // node is a file
+		// 如果node是一个文件节点
 		value, _ := n.Read()
 		eNode.Value = &value
 	}

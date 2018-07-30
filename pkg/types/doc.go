@@ -14,4 +14,5 @@
 
 // Package types declares various data types and implements type-checking
 // functions.
+// types声明了各种数据类型并且实现了type-checking函数
 package types

@@ -39,12 +39,15 @@ var (
 
 // NewListener returns a listener for raft message transfer between peers.
 // It uses timeout listener to identify broken streams promptly.
+// NewListener返回一个listeners用于在peers之间传递raft message
+// 使用timeout listener来及时标识broken streams
 func NewListener(u url.URL, tlscfg *tls.Config) (net.Listener, error) {
 	return transport.NewTimeoutListener(u.Host, u.Scheme, tlscfg, ConnReadTimeout, ConnWriteTimeout)
 }
 
 // NewRoundTripper returns a roundTripper used to send requests
 // to rafthttp listener of remote peers.
+// NewRoundTripper返回一个roundTripper用来向rafthttp listener的remote peers发送请求
 func NewRoundTripper(tlsInfo transport.TLSInfo, dialTimeout time.Duration) (http.RoundTripper, error) {
 	// It uses timeout transport to pair with remote timeout listeners.
 	// It sets no read/write timeout, because message in requests may

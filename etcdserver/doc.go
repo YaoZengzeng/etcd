@@ -13,4 +13,5 @@
 // limitations under the License.
 
 // Package etcdserver defines how etcd servers interact and store their states.
+// etcdserver定义了etcd servers如何交互以及存储他们的states
 package etcdserver

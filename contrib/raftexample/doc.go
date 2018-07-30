@@ -13,4 +13,5 @@
 // limitations under the License.
 
 // raftexample is a simple KV store using the raft and rafthttp libraries.
+// raftexample是一个使用了raft和rafthttp包的简单的KV store
 package main

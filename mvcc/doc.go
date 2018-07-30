@@ -13,4 +13,5 @@
 // limitations under the License.
 
 // Package mvcc defines etcd's stable MVCC storage.
+// mvcc包定义了etcd稳定的MVCC存储
 package mvcc

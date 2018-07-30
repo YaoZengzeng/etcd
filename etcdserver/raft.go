@@ -331,6 +331,7 @@ func advanceTicksForElection(n raft.Node, electionTicks int) {
 	}
 }
 
+// 启动raft节点
 func startNode(cfg *ServerConfig, cl *membership.RaftCluster, ids []types.ID) (id types.ID, n raft.Node, s *raft.MemoryStorage, w *wal.WAL) {
 	var err error
 	member := cl.MemberByName(cfg.Name)
@@ -364,6 +365,7 @@ func startNode(cfg *ServerConfig, cl *membership.RaftCluster, ids []types.ID) (i
 		CheckQuorum:     true,
 	}
 
+	// 启动raft节点
 	n = raft.StartNode(c, peers)
 	raftStatusMu.Lock()
 	raftStatus = n.Status

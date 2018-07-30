@@ -23,6 +23,8 @@ import (
 // NewTimeoutListener returns a listener that listens on the given address.
 // If read/write on the accepted connection blocks longer than its time limit,
 // it will return timeout error.
+// NewTimeoutListener返回一个listener，它会对给定地址进行监听
+// 如果它在接收到的连接的读写超过了time limits，则会返回timeout error
 func NewTimeoutListener(addr string, scheme string, tlscfg *tls.Config, rdtimeoutd, wtimeoutd time.Duration) (net.Listener, error) {
 	ln, err := newListener(addr, scheme)
 	if err != nil {

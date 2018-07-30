@@ -119,6 +119,9 @@ type Server interface {
 	// begin serving requests. It must be called before Do or Process.
 	// Start must be non-blocking; any long-running server functionality
 	// should be implemented in goroutines.
+	// Start对Server进行初始化使它能够处理请求
+	// 它必须在Do或者Process之前被调用
+	// Start必须是非阻塞的，任何long-running的server功能都必须在goroutines中实现
 	Start()
 	// Stop terminates the Server and performs any necessary finalization.
 	// Do and Process cannot be called after Stop has been invoked.
@@ -126,11 +129,14 @@ type Server interface {
 	// ID returns the ID of the Server.
 	ID() types.ID
 	// Leader returns the ID of the leader Server.
+	// Leader返回leader server的ID
 	Leader() types.ID
 	// Do takes a request and attempts to fulfill it, returning a Response.
+	// Do接收一个请求并且尝试填充它，返回一个Response
 	Do(ctx context.Context, r pb.Request) (Response, error)
 	// Process takes a raft message and applies it to the server's raft state
 	// machine, respecting any timeout of the given context.
+	// Process获取一个raft message并且将它运用到server的raft状态机上
 	Process(ctx context.Context, m raftpb.Message) error
 	// AddMember attempts to add a member into the cluster. It will return
 	// ErrIDRemoved if member ID is removed from the cluster, or return
@@ -156,6 +162,7 @@ type Server interface {
 	//
 	// The API/raft component can utilize ClusterVersion to determine if
 	// it can accept a client request or a raft RPC.
+	// API/raft组件会使用ClusterVersion来决定是否能够接收一个client request或者raft RPC
 	// NOTE: ClusterVersion might be nil when etcd 2.1 works with etcd 2.0 and
 	// the leader is etcd 2.0. etcd 2.0 leader will not update clusterVersion since
 	// this feature is introduced post 2.0.
@@ -242,7 +249,10 @@ type EtcdServer struct {
 
 // NewServer creates a new EtcdServer from the supplied configuration. The
 // configuration is considered static for the lifetime of the EtcdServer.
+// NewServer根据提供的配置创建一个新的EtcdServer
+// 配置在EtcdServer的整个生命周期内都是不变的
 func NewServer(cfg *ServerConfig) (srv *EtcdServer, err error) {
+	// 创建store
 	st := store.New(StoreClusterPrefix, StoreKeysPrefix)
 
 	var (
@@ -259,6 +269,7 @@ func NewServer(cfg *ServerConfig) (srv *EtcdServer, err error) {
 
 	haveWAL := wal.Exist(cfg.WALDir())
 
+	// 创建snap dir
 	if err = fileutil.TouchDirAll(cfg.SnapDir()); err != nil {
 		plog.Fatalf("create snapshot directory error: %v", err)
 	}
@@ -270,6 +281,7 @@ func NewServer(cfg *ServerConfig) (srv *EtcdServer, err error) {
 	var be backend.Backend
 	beOpened := make(chan struct{})
 	go func() {
+		// 创建新的backend
 		be = backend.NewDefaultBackend(bepath)
 		beOpened <- struct{}{}
 	}()
@@ -327,6 +339,7 @@ func NewServer(cfg *ServerConfig) (srv *EtcdServer, err error) {
 		if err = cfg.VerifyBootstrap(); err != nil {
 			return nil, err
 		}
+		// 创建一个新的cluster对象
 		cl, err = membership.NewClusterFromURLsMap(cfg.InitialClusterToken, cfg.InitialPeerURLsMap)
 		if err != nil {
 			return nil, err
@@ -353,8 +366,10 @@ func NewServer(cfg *ServerConfig) (srv *EtcdServer, err error) {
 				return nil, err
 			}
 		}
+		// 初始化store和backend	
 		cl.SetStore(st)
 		cl.SetBackend(be)
+		// 输出启动信息
 		cfg.PrintWithInitial()
 		id, n, s, w = startNode(cfg, cl, cl.MemberIDs())
 	case haveWAL:
@@ -408,6 +423,7 @@ func NewServer(cfg *ServerConfig) (srv *EtcdServer, err error) {
 	lstats := stats.NewLeaderStats(id.String())
 
 	heartbeat := time.Duration(cfg.TickMs) * time.Millisecond
+	// 创建etcd server
 	srv = &EtcdServer{
 		readych:   make(chan struct{}),
 		Cfg:       cfg,
@@ -445,6 +461,7 @@ func NewServer(cfg *ServerConfig) (srv *EtcdServer, err error) {
 
 	// always recover lessor before kv. When we recover the mvcc.KV it will reattach keys to its leases.
 	// If we recover mvcc.KV first, it will attach the keys to the wrong lessor before it recovers.
+	// 总是先恢复lessor再恢复kv，当我恢复mvcc.KV时，它会重新将keys连接到它的leases中
 	srv.lessor = lease.NewLessor(srv.be, int64(math.Ceil(minTTL.Seconds())))
 	srv.kv = mvcc.New(srv.be, srv.lessor, &srv.consistIndex)
 	if beExist {
@@ -509,6 +526,9 @@ func NewServer(cfg *ServerConfig) (srv *EtcdServer, err error) {
 // Start prepares and starts server in a new goroutine. It is no longer safe to
 // modify a server's fields after it has been sent to Start.
 // It also starts a goroutine to publish its server information.
+// Start在一个新的goroutine中准备并且启动server，在将配置传递给Start以后
+// 再修改它就不再安全了
+// 同时，它也会启动一个goroutine用于发布server的信息
 func (s *EtcdServer) Start() {
 	s.start()
 	s.goAttach(func() { s.publish(s.Cfg.ReqTimeout()) })
@@ -521,6 +541,8 @@ func (s *EtcdServer) Start() {
 // start prepares and starts server in a new goroutine. It is no longer safe to
 // modify a server's fields after it has been sent to Start.
 // This function is just used for testing.
+// start在一个新的goroutine中准备并且启动server
+// 在server已经启动之后，再修改其中的字段是不安全的
 func (s *EtcdServer) start() {
 	if s.snapCount == 0 {
 		plog.Infof("set snapshot count to default %d", DefaultSnapCount)
@@ -1629,6 +1651,7 @@ func (s *EtcdServer) setCommittedIndex(v uint64) {
 
 // goAttach creates a goroutine on a given function and tracks it using
 // the etcdserver waitgroup.
+// goAttach为给定的函数创建一个goroutine，并且使用etcdserver的waitgroup对其进行追踪
 func (s *EtcdServer) goAttach(f func()) {
 	s.wgMu.RLock() // this blocks with ongoing close(s.stopping)
 	defer s.wgMu.RUnlock()
@@ -1640,6 +1663,7 @@ func (s *EtcdServer) goAttach(f func()) {
 	}
 
 	// now safe to add since waitgroup wait has not started yet
+	// waitgroup还没有开始wait，因此现在进行add是安全的
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()

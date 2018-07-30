@@ -13,4 +13,5 @@
 // limitations under the License.
 
 // Package compactor implements automated policies for compacting etcd's mvcc storage.
+// compactor包实现了压缩etcd的mvcc storage的自动化策略
 package compactor

@@ -104,6 +104,8 @@ type WatchableKV interface {
 type Watchable interface {
 	// NewWatchStream returns a WatchStream that can be used to
 	// watch events happened or happening on the KV.
+	// NewWatchStream返回一个WatchStream，它可以被用来watch在KV上已经发生
+	// 或正在发生的事件
 	NewWatchStream() WatchStream
 }
 

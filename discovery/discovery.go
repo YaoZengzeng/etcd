@@ -14,6 +14,7 @@
 
 // Package discovery provides an implementation of the cluster discovery that
 // is used by etcd.
+// discovery包提供了etcd使用的cluster discovery的实现
 package discovery
 
 import (

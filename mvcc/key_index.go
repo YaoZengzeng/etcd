@@ -27,6 +27,8 @@ var (
 )
 
 // keyIndex stores the revisions of a key in the backend.
+// keyIndex存储在backend中的key的revisions
+// 每个用户原始key都会关联一个key_index结构，里面维护了多版本信息
 // Each keyIndex has at least one key generation.
 // Each generation might have several key versions.
 // Tombstone on a key appends an tombstone version at the end
@@ -47,6 +49,8 @@ var (
 // during compaction, it will be removed. if all the generations get
 // removed, the keyIndex should be removed.
 
+// Compact(n)表示压缩掉revision.main <= n的所有历史版本，会发生一系列的删减操作
+
 // For example:
 // compact(2) on the previous example
 // generations:
@@ -66,8 +70,11 @@ var (
 // compact(6):
 // generations:
 //    {empty} -> key SHOULD be removed.
+// tombstone就是指删除key，一旦发生删除就会结束当前的generation，生成新的generation
+// 
 type keyIndex struct {
 	key         []byte
+	// modified字段包含了key最后一次修改对应的revision信息
 	modified    revision // the main rev of the last modification
 	generations []generation
 }
@@ -287,8 +294,10 @@ func (ki *keyIndex) String() string {
 }
 
 // generation contains multiple revisions of a key.
+// generation保存了key的多个revisions
 type generation struct {
 	ver     int64
+	// created是generation被创建时的revision
 	created revision // when the generation is created (put in first revision).
 	revs    []revision
 }
