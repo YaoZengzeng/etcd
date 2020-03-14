@@ -34,6 +34,7 @@ import (
 
 // Functional tests for features implemented in v3 store. It treats v3 store
 // as a black box, and tests it by feeding the input and validating the output.
+// 对于v3 store的功能测试，它将v3 store作为一个black box，并且通过提供输入测试它并且检查输出
 
 // TODO: add similar tests on operations in one txn/rev
 

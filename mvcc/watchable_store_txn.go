@@ -40,6 +40,7 @@ func (tw *watchableStoreTxnWrite) End() {
 
 	// end write txn under watchable store lock so the updates are visible
 	// when asynchronous event posting checks the current store revision
+	// end在watchable store lock之下写入，因此更新是可见的
 	tw.s.mu.Lock()
 	tw.s.notify(rev, evs)
 	tw.TxnWrite.End()
@@ -52,5 +53,6 @@ type watchableStoreTxnWrite struct {
 }
 
 func (s *watchableStore) Write(trace *traceutil.Trace) TxnWrite {
+	// 调用watchableStore获取
 	return &watchableStoreTxnWrite{s.store.Write(trace), s}
 }

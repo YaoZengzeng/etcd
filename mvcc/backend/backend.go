@@ -114,12 +114,16 @@ type BackendConfig struct {
 	// Path is the file path to the backend file.
 	Path string
 	// BatchInterval is the maximum time before flushing the BatchTx.
+	// BatchInterval是flushing BatchTx之前最长的时间
 	BatchInterval time.Duration
 	// BatchLimit is the maximum puts before flushing the BatchTx.
+	// BatchLimit是flushing BatchTx之前最多的puts
 	BatchLimit int
 	// BackendFreelistType is the backend boltdb's freelist type.
+	// BackendFreelistType是后端的boltdb的freelist的类型
 	BackendFreelistType bolt.FreelistType
 	// MmapSize is the number of bytes to mmap for the backend.
+	// MmapSize是backend的mmap的字节数
 	MmapSize uint64
 	// Logger logs backend-side operations.
 	Logger *zap.Logger

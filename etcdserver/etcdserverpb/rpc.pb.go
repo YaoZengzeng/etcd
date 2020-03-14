@@ -456,6 +456,7 @@ type PutRequest struct {
 	Lease int64 `protobuf:"varint,3,opt,name=lease,proto3" json:"lease,omitempty"`
 	// If prev_kv is set, etcd gets the previous key-value pair before changing it.
 	// The previous key-value pair will be returned in the put response.
+	// 如果设置了prev_ks，etcd在变更之前会获取previous key-value对并且作为response返回给put操作
 	PrevKv bool `protobuf:"varint,4,opt,name=prev_kv,json=prevKv,proto3" json:"prev_kv,omitempty"`
 	// If ignore_value is set, etcd updates the key using its current value.
 	// Returns an error if the key does not exist.
@@ -1763,6 +1764,7 @@ type WatchResponse struct {
 	Created bool `protobuf:"varint,3,opt,name=created,proto3" json:"created,omitempty"`
 	// canceled is set to true if the response is for a cancel watch request.
 	// No further events will be sent to the canceled watcher.
+	// 不会再有新的events发送给canceled watcher
 	Canceled bool `protobuf:"varint,4,opt,name=canceled,proto3" json:"canceled,omitempty"`
 	// compact_revision is set to the minimum index if a watcher tries to watch
 	// at a compacted index.
@@ -3706,6 +3708,7 @@ func (x *watchWatchClient) Recv() (*WatchResponse, error) {
 }
 
 // Server API for Watch service
+// 用于Watch服务的Server API
 
 type WatchServer interface {
 	// Watch watches for events happening or that have happened. Both input and output
@@ -3713,6 +3716,9 @@ type WatchServer interface {
 	// stream sends events. One watch RPC can watch on multiple key ranges, streaming events
 	// for several watches at once. The entire event history can be watched starting from the
 	// last compaction revision.
+	// Watch监听已经发生或者正在发生的events，输入输出都是streams，输入stream用于创建以及取消wathcers
+	// output stream发送events，一个watch RPC可以监听多个key ranges以及一次发送多个watches的streaming
+	// events，完整的event history都可以被监听，通过最近的compaction revision
 	Watch(Watch_WatchServer) error
 }
 

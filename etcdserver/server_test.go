@@ -52,6 +52,7 @@ import (
 
 // TestDoLocalAction tests requests which do not need to go through raft to be applied,
 // and are served through local data.
+// TestDoLocalAction测试那些不需要经过raft而仅仅通过本地数据进行服务的请求
 func TestDoLocalAction(t *testing.T) {
 	tests := []struct {
 		req pb.Request
@@ -62,11 +63,13 @@ func TestDoLocalAction(t *testing.T) {
 	}{
 		{
 			pb.Request{Method: "GET", ID: 1, Wait: true},
+			// Wait为true，说明是Watch请求
 			Response{Watcher: v2store.NewNopWatcher()}, nil, []testutil.Action{{Name: "Watch"}},
 		},
 		{
 			pb.Request{Method: "GET", ID: 1},
 			Response{Event: &v2store.Event{}}, nil,
+			// Get方法且Wait为false说明是Get请求
 			[]testutil.Action{
 				{
 					Name:   "Get",
@@ -105,6 +108,7 @@ func TestDoLocalAction(t *testing.T) {
 		if !reflect.DeepEqual(resp, tt.wresp) {
 			t.Errorf("#%d: resp = %+v, want %+v", i, resp, tt.wresp)
 		}
+		// st会保存操作记录
 		gaction := st.Action()
 		if !reflect.DeepEqual(gaction, tt.wactions) {
 			t.Errorf("#%d: action = %+v, want %+v", i, gaction, tt.wactions)
@@ -168,6 +172,7 @@ func TestDoBadLocalAction(t *testing.T) {
 }
 
 // TestApplyRepeat tests that server handles repeat raft messages gracefully
+// TestApplyRepeat测试server能够优雅地处理raft message协议
 func TestApplyRepeat(t *testing.T) {
 	n := newNodeConfChangeCommitterStream()
 	n.readyc <- raft.Ready{

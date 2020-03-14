@@ -75,11 +75,13 @@ type StoreConfig struct {
 }
 
 type store struct {
+	// 默认建一个ReadView和WriteView
 	ReadView
 	WriteView
 
 	// consistentIndex caches the "consistent_index" key's value. Accessed
 	// through atomics so must be 64-bit aligned.
+	// consistentIndex缓存"consistent_index"这个key的value，通过atomics访问，因此必须是64位对齐的
 	consistentIndex uint64
 
 	cfg StoreConfig
@@ -90,6 +92,7 @@ type store struct {
 	ig ConsistentIndexGetter
 
 	b       backend.Backend
+	// index存放kvindex
 	kvindex index
 
 	le lease.Lessor
@@ -99,8 +102,10 @@ type store struct {
 	// Locked before locking read txn and released after locking.
 	revMu sync.RWMutex
 	// currentRev is the revision of the last completed transaction.
+	// currrentRev是上一次完成的transaction的revision
 	currentRev int64
 	// compactMainRev is the main revision of the last compaction.
+	// compactMainRev是上一次压缩的main revision
 	compactMainRev int64
 
 	// bytesBuf8 is a byte slice of length 8
@@ -124,10 +129,12 @@ func NewStore(lg *zap.Logger, b backend.Backend, le lease.Lessor, ig ConsistentI
 		cfg:     cfg,
 		b:       b,
 		ig:      ig,
+		// 创建一个新的tree index
 		kvindex: newTreeIndex(lg),
 
 		le: le,
 
+		// 初始化时，revision默认从1开始
 		currentRev:     1,
 		compactMainRev: -1,
 
@@ -146,6 +153,7 @@ func NewStore(lg *zap.Logger, b backend.Backend, le lease.Lessor, ig ConsistentI
 
 	tx := s.b.BatchTx()
 	tx.Lock()
+	// 创建两个bucket
 	tx.UnsafeCreateBucket(keyBucketName)
 	tx.UnsafeCreateBucket(metaBucketName)
 	tx.Unlock()

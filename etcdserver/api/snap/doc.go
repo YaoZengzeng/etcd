@@ -14,4 +14,6 @@
 
 // Package snap handles Raft nodes' states with snapshots.
 // The snapshot logic is internal to etcd server and raft package.
+// snap包用snapshots处理Raft的nodes' states
+// snapshot的逻辑是存在于etcd server和raft包内部的
 package snap

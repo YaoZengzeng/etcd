@@ -17,6 +17,7 @@ package etcdserver
 import "sync"
 
 // AccessController controls etcd server HTTP request access.
+// AccessController控制etcd server到HTTP请求访问
 type AccessController struct {
 	corsMu          sync.RWMutex
 	CORS            map[string]struct{}

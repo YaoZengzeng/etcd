@@ -56,6 +56,7 @@
 //
 // The Client has internal state (watchers and leases), so Clients should be reused instead of created as needed.
 // Clients are safe for concurrent use by multiple goroutines.
+// Client有内部的状态（watchers以及leases），因此Clients应该被重用而不是按需创建
 //
 // etcd client returns 3 types of errors:
 //

@@ -53,6 +53,7 @@ func newListener(addr string, scheme string) (net.Listener, error) {
 }
 
 func wrapTLS(scheme string, tlsinfo *TLSInfo, l net.Listener) (net.Listener, error) {
+	// 如果scheme为"https"或者"unixs"则直接返回net.Listener
 	if scheme != "https" && scheme != "unixs" {
 		return l, nil
 	}

@@ -13,4 +13,5 @@
 // limitations under the License.
 
 // Package rpctypes has types and values shared by the etcd server and client for v3 RPC interaction.
+// rpctypes包含etcd server和client共享的types以及values用于v3的RPC交互
 package rpctypes

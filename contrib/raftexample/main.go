@@ -34,6 +34,7 @@ func main() {
 	defer close(confChangeC)
 
 	// raft provides a commit stream for the proposals from the http api
+	// raft提供了一个从http api获取proposals的commit stream
 	var kvs *kvstore
 	getSnapshot := func() ([]byte, error) { return kvs.getSnapshot() }
 	commitC, errorC, snapshotterReady := newRaftNode(*id, strings.Split(*cluster, ","), *join, getSnapshot, proposeC, confChangeC)
@@ -41,5 +42,6 @@ func main() {
 	kvs = newKVStore(<-snapshotterReady, proposeC, commitC, errorC)
 
 	// the key-value http handler will propose updates to raft
+	// key-value http handler会将propose提交给raft
 	serveHttpKVAPI(kvs, *kvport, confChangeC, errorC)
 }

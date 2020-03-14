@@ -26,6 +26,7 @@ var (
 	// watchBatchMaxRevs is the maximum distinct revisions that
 	// may be sent to an unsynced watcher at a time. Declared as
 	// var instead of const for testing purposes.
+	// watchBatchMaxRevs是一次能够发送给unsynced watcher最大的不同的revision数目
 	watchBatchMaxRevs = 1000
 )
 
@@ -33,6 +34,7 @@ type eventBatch struct {
 	// evs is a batch of revision-ordered events
 	evs []mvccpb.Event
 	// revs is the minimum unique revisions observed for this batch
+	// revs是在这个batch里面最小的unique revisions
 	revs int
 	// moreRev is first revision with more events following this batch
 	moreRev int64
@@ -65,6 +67,7 @@ func (eb *eventBatch) add(ev mvccpb.Event) {
 	eb.evs = append(eb.evs, ev)
 }
 
+// watcherBatch就是watcher到eventBatch的映射
 type watcherBatch map[*watcher]*eventBatch
 
 func (wb watcherBatch) add(w *watcher, ev mvccpb.Event) {
@@ -78,6 +81,7 @@ func (wb watcherBatch) add(w *watcher, ev mvccpb.Event) {
 
 // newWatcherBatch maps watchers to their matched events. It enables quick
 // events look up by watcher.
+// newWatcherBatch映射watchers到它们匹配的events，它能够让watcher快速找到它的events
 func newWatcherBatch(wg *watcherGroup, evs []mvccpb.Event) watcherBatch {
 	if len(wg.watchers) == 0 {
 		return nil
@@ -144,12 +148,16 @@ func (w watcherSetByKey) delete(wa *watcher) bool {
 }
 
 // watcherGroup is a collection of watchers organized by their ranges
+// watcherGroup是一系列通过它们的ranges组合的watchers集合
 type watcherGroup struct {
 	// keyWatchers has the watchers that watch on a single key
+	// keyWatchers包含了监听在单个key的watchers
 	keyWatchers watcherSetByKey
 	// ranges has the watchers that watch a range; it is sorted by interval
+	// ranges包含了watch一个range的watchers，它通过interval来排序
 	ranges adt.IntervalTree
 	// watchers is the set of all watchers
+	// watchers是所有watchers的集合
 	watchers watcherSet
 }
 
@@ -170,6 +178,7 @@ func (wg *watcherGroup) add(wa *watcher) {
 	}
 
 	// interval already registered?
+	// 红黑树查看interval是否已经注册
 	ivl := adt.NewStringAffineInterval(string(wa.key), string(wa.end))
 	if iv := wg.ranges.Find(ivl); iv != nil {
 		iv.Val.(watcherSet).add(wa)
@@ -177,6 +186,7 @@ func (wg *watcherGroup) add(wa *watcher) {
 	}
 
 	// not registered, put in interval tree
+	// 没有注册，则加入线段树中
 	ws := make(watcherSet)
 	ws.add(wa)
 	wg.ranges.Insert(ivl, ws)
@@ -221,6 +231,7 @@ func (wg *watcherGroup) delete(wa *watcher) bool {
 }
 
 // choose selects watchers from the watcher group to update
+// 从watcher group选取一系列的watchers用于更新
 func (wg *watcherGroup) choose(maxWatchers int, curRev, compactRev int64) (*watcherGroup, int64) {
 	if len(wg.watchers) < maxWatchers {
 		return wg, wg.chooseAll(curRev, compactRev)
@@ -264,10 +275,12 @@ func (wg *watcherGroup) chooseAll(curRev, compactRev int64) int64 {
 			minRev = w.minRev
 		}
 	}
+	// 返回被选中的watcher里面的最小revision
 	return minRev
 }
 
 // watcherSetByKey gets the set of watchers that receive events on the given key.
+// watcherSetByKey获取一系列的watchers，它们接受给定key的events
 func (wg *watcherGroup) watcherSetByKey(key string) watcherSet {
 	wkeys := wg.keyWatchers[key]
 	wranges := wg.ranges.Stab(adt.NewStringAffinePoint(key))

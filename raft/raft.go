@@ -134,6 +134,7 @@ type Config struct {
 	// candidate and start an election. ElectionTick must be greater than
 	// HeartbeatTick. We suggest ElectionTick = 10 * HeartbeatTick to avoid
 	// unnecessary leader switching.
+	// 我们建议ElectionTick是10倍的HeartbeatTick，从而避免不必要的leader切换
 	ElectionTick int
 	// HeartbeatTick is the number of Node.Tick invocations that must pass between
 	// heartbeats. That is, a leader sends heartbeat messages to maintain its
@@ -144,6 +145,8 @@ type Config struct {
 	// stored in storage. raft reads the persisted entries and states out of
 	// Storage when it needs. raft reads out the previous state and configuration
 	// out of storage when restarting.
+	// raft产生entries以及states用来存储在storage中，有必要的话，raft会从Storage中读取persisted entries
+	// 以及states，在重启的时候，raft从storage读取之前的状态以及配置
 	Storage Storage
 	// Applied is the last applied index. It should only be set when restarting
 	// raft. raft will not return entries to the application smaller or equal to

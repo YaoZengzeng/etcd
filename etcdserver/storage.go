@@ -30,7 +30,9 @@ import (
 
 type Storage interface {
 	// Save function saves ents and state to the underlying stable storage.
+	// Save函数存储ents以及state到底层的stable storage
 	// Save MUST block until st and ents are on stable storage.
+	// Save必须阻塞直到st和ents已经在stable storage中
 	Save(st raftpb.HardState, ents []raftpb.Entry) error
 	// SaveSnap function saves snapshot to the underlying stable storage.
 	SaveSnap(snap raftpb.Snapshot) error

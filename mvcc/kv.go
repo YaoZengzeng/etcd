@@ -55,6 +55,7 @@ type ReadView interface {
 
 // TxnRead represents a read-only transaction with operations that will not
 // block other read transactions.
+// TxnRead代表一个只读的transaction，它的操作不会阻塞其他的读操作
 type TxnRead interface {
 	ReadView
 	// End marks the transaction is complete and ready to commit.
@@ -74,12 +75,17 @@ type WriteView interface {
 	// Put puts the given key, value into the store. Put also takes additional argument lease to
 	// attach a lease to a key-value pair as meta-data. KV implementation does not validate the lease
 	// id.
+	// Put将给定的key, value传入store，Put同时用额外的参数lease将一个lease和key-value关联在一起作为元数据，KV的实现
+	// 不会检测lease id
 	// A put also increases the rev of the store, and generates one event in the event history.
+	// 一个put操作也会增加store的rev，并且在event history中产生一个event
 	// The returned rev is the current revision of the KV when the operation is executed.
+	// 返回的rev是在操作结束之后KV当前的revision
 	Put(key, value []byte, lease lease.LeaseID) (rev int64)
 }
 
 // TxnWrite represents a transaction that can modify the store.
+// TxnWrite代表会修改store的transaction
 type TxnWrite interface {
 	TxnRead
 	WriteView
@@ -103,6 +109,7 @@ type KV interface {
 	WriteView
 
 	// Read creates a read transaction.
+	// Read创建一个read transaction
 	Read(trace *traceutil.Trace) TxnRead
 
 	// Write creates a write transaction.
@@ -115,34 +122,43 @@ type KV interface {
 	HashByRev(rev int64) (hash uint32, revision int64, compactRev int64, err error)
 
 	// Compact frees all superseded keys with revisions less than rev.
+	// Compact将所有revisions小于rev的keys都清除掉
 	Compact(trace *traceutil.Trace, rev int64) (<-chan struct{}, error)
 
 	// Commit commits outstanding txns into the underlying backend.
+	// Commit将外部的txns提交到底层的backend
 	Commit()
 
 	// Restore restores the KV store from a backend.
+	// Restore从一个backend中重新恢复KV
 	Restore(b backend.Backend) error
 	Close() error
 }
 
 // WatchableKV is a KV that can be watched.
+// WatchableKV是一个能够被监听的KV
 type WatchableKV interface {
 	KV
 	Watchable
 }
 
 // Watchable is the interface that wraps the NewWatchStream function.
+// Watchable是封装了NewWatchStream功能的接口
 type Watchable interface {
 	// NewWatchStream returns a WatchStream that can be used to
 	// watch events happened or happening on the KV.
+	// NewWatchStream返回一个WatchStream，它可以用来监听KV中已经发生或者正在发生的events
 	NewWatchStream() WatchStream
 }
 
 // ConsistentWatchableKV is a WatchableKV that understands the consistency
 // algorithm and consistent index.
+// ConsistentWatchableKV是一个WatchableKV，它理解共识算法以及consistent index
 // If the consistent index of executing entry is not larger than the
 // consistent index of ConsistentWatchableKV, all operations in
 // this entry are skipped and return empty response.
+// 如果executing entry的consistent index不大于ConsistentWatchableKV的consistent index
+// 则这个entry的所有操作都会跳过并且返回空的response
 type ConsistentWatchableKV interface {
 	WatchableKV
 	// ConsistentIndex returns the current consistent index of the KV.

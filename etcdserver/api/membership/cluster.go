@@ -43,6 +43,7 @@ import (
 const maxLearners = 1
 
 // RaftCluster is a list of Members that belong to the same raft cluster
+// RaftCluster是一系列属于同一个raft cluster的Members
 type RaftCluster struct {
 	lg *zap.Logger
 
@@ -72,6 +73,7 @@ type ConfigChangeContext struct {
 
 // NewClusterFromURLsMap creates a new raft cluster using provided urls map. Currently, it does not support creating
 // cluster with raft learner member.
+// NewClusterFromURLsMap用给定的urls map创建一个新的raft cluster
 func NewClusterFromURLsMap(lg *zap.Logger, token string, urlsmap types.URLsMap) (*RaftCluster, error) {
 	c := NewCluster(lg, token)
 	for name, urls := range urlsmap {

@@ -38,8 +38,11 @@ import (
 )
 
 // A key-value stream backed by raft
+// 一个基于raft的key-value stream
 type raftNode struct {
+	// proposeC提交已经通过的messages
 	proposeC    <-chan string            // proposed messages (k,v)
+	// confChangeC提交集群配置的变更
 	confChangeC <-chan raftpb.ConfChange // proposed cluster config changes
 	commitC     chan<- *string           // entries committed to log (k,v)
 	errorC      chan<- error             // errors from raft session
@@ -78,6 +81,8 @@ var defaultSnapshotCount uint64 = 10000
 // provided the proposal channel. All log entries are replayed over the
 // commit channel, followed by a nil message (to indicate the channel is
 // current), then new log entries. To shutdown, close proposeC and read errorC.
+// newRaftNode初始化一个raft实例并且返回一个committed log entry channel以及一个error channel
+// log updates的Proposals通过提供的proposal channel进行发送
 func newRaftNode(id int, peers []string, join bool, getSnapshot func() ([]byte, error), proposeC <-chan string,
 	confChangeC <-chan raftpb.ConfChange) (<-chan *string, <-chan error, <-chan *snap.Snapshotter) {
 
@@ -103,6 +108,7 @@ func newRaftNode(id int, peers []string, join bool, getSnapshot func() ([]byte, 
 		snapshotterReady: make(chan *snap.Snapshotter, 1),
 		// rest of structure populated after WAL replay
 	}
+	// 启动raft node
 	go rc.startRaft()
 	return commitC, errorC, rc.snapshotterReady
 }
@@ -140,6 +146,8 @@ func (rc *raftNode) entriesToApply(ents []raftpb.Entry) (nents []raftpb.Entry) {
 
 // publishEntries writes committed log entries to commit channel and returns
 // whether all entries could be published.
+// publishEntries将commited log entries加入commit channel并且返回是否所有的entries都能
+// 被发布
 func (rc *raftNode) publishEntries(ents []raftpb.Entry) bool {
 	for i := range ents {
 		switch ents[i].Type {
@@ -150,6 +158,7 @@ func (rc *raftNode) publishEntries(ents []raftpb.Entry) bool {
 			}
 			s := string(ents[i].Data)
 			select {
+			// 将数据通过commitC进行发送
 			case rc.commitC <- &s:
 			case <-rc.stopc:
 				return false
@@ -224,6 +233,7 @@ func (rc *raftNode) openWAL(snapshot *raftpb.Snapshot) *wal.WAL {
 }
 
 // replayWAL replays WAL entries into the raft instance.
+// replayWAL将WAL entries重放到raft实例
 func (rc *raftNode) replayWAL() *wal.WAL {
 	log.Printf("replaying WAL of member %d", rc.id)
 	snapshot := rc.loadSnapshot()
@@ -266,6 +276,7 @@ func (rc *raftNode) startRaft() {
 	rc.snapshotter = snap.New(zap.NewExample(), rc.snapdir)
 	rc.snapshotterReady <- rc.snapshotter
 
+	// 如果wal存在的话，重放wal
 	oldwal := wal.Exist(rc.waldir)
 	rc.wal = rc.replayWAL()
 
@@ -284,12 +295,14 @@ func (rc *raftNode) startRaft() {
 	}
 
 	if oldwal {
+		// 如果wal存在的话，重启raft node
 		rc.node = raft.RestartNode(c)
 	} else {
 		startPeers := rpeers
 		if rc.join {
 			startPeers = nil
 		}
+		// 否则新建一个raft node
 		rc.node = raft.StartNode(c, startPeers)
 	}
 
@@ -393,6 +406,7 @@ func (rc *raftNode) serveChannels() {
 	defer ticker.Stop()
 
 	// send proposals over raft
+	// 通过raft发送proposals
 	go func() {
 		confChangeCount := uint64(0)
 
@@ -403,6 +417,7 @@ func (rc *raftNode) serveChannels() {
 					rc.proposeC = nil
 				} else {
 					// blocks until accepted by raft state machine
+					// 阻塞，直到被raft状态机接受
 					rc.node.Propose(context.TODO(), []byte(prop))
 				}
 
@@ -412,6 +427,7 @@ func (rc *raftNode) serveChannels() {
 				} else {
 					confChangeCount++
 					cc.ID = confChangeCount
+					// 提交集群状态的变更
 					rc.node.ProposeConfChange(context.TODO(), cc)
 				}
 			}
@@ -421,12 +437,14 @@ func (rc *raftNode) serveChannels() {
 	}()
 
 	// event loop on raft state machine updates
+	// raft状态机更新的事件循环
 	for {
 		select {
 		case <-ticker.C:
 			rc.node.Tick()
 
 		// store raft entries to wal, then publish over commit channel
+		// 将raft entries存入wal中，之后再通过commit channel进行发送
 		case rd := <-rc.node.Ready():
 			rc.wal.Save(rd.HardState, rd.Entries)
 			if !raft.IsEmptySnap(rd.Snapshot) {
@@ -434,6 +452,7 @@ func (rc *raftNode) serveChannels() {
 				rc.raftStorage.ApplySnapshot(rd.Snapshot)
 				rc.publishSnapshot(rd.Snapshot)
 			}
+			// 对raft storage进行append
 			rc.raftStorage.Append(rd.Entries)
 			rc.transport.Send(rd.Messages)
 			if ok := rc.publishEntries(rc.entriesToApply(rd.CommittedEntries)); !ok {

@@ -29,6 +29,7 @@ import (
 )
 
 // ApplierV2 is the interface for processing V2 raft messages
+// ApplierV2是用于处理V2 raft messages的接口
 type ApplierV2 interface {
 	Delete(r *RequestV2) Response
 	Post(r *RequestV2) Response

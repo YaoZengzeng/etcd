@@ -58,6 +58,8 @@ type Transporter interface {
 	// to an existing peer in the transport.
 	// If the id cannot be found in the transport, the message
 	// will be ignored.
+	// Send发送给定的messages到remote peers，每个message都有一个To字段
+	// 它是一个id能够映射到transport的一个已经存在的peer
 	Send(m []raftpb.Message)
 	// SendSnapshot sends out the given snapshot message to a remote peer.
 	// The behavior of SendSnapshot is similar to Send.
@@ -94,8 +96,10 @@ type Transporter interface {
 
 // Transport implements Transporter interface. It provides the functionality
 // to send raft messages to peers, and receive raft messages from peers.
+// Transport实现了Transporter接口，它提供的功能包括发送raft messages到peers以及从peers接收raft messages
 // User should call Handler method to get a handler to serve requests
 // received from peerURLs.
+// 用户应该调用Handler方法来获取一个handler用于服务来自peerURLs的请求
 // User needs to call Start before calling other functions, and call
 // Stop when the Transport is no longer used.
 type Transport struct {

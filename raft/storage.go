@@ -39,10 +39,13 @@ var ErrSnapshotTemporarilyUnavailable = errors.New("snapshot is temporarily unav
 
 // Storage is an interface that may be implemented by the application
 // to retrieve log entries from storage.
+// Storage用于application从中获取log entries
 //
 // If any Storage method returns an error, the raft instance will
 // become inoperable and refuse to participate in elections; the
 // application is responsible for cleanup and recovery in this case.
+// 如果Storage的任何方法返回error，则raft实例会变得无法操作并且拒绝加入选举，application
+// 有责任清理以及恢复在这种情况下
 type Storage interface {
 	// TODO(tbg): split this into two interfaces, LogStorage and StateStorage.
 
@@ -63,6 +66,7 @@ type Storage interface {
 	// possibly available via Entries (older entries have been incorporated
 	// into the latest Snapshot; if storage only contains the dummy entry the
 	// first log entry is not available).
+	// 比FirstIndex()更老的entries已经进入Snapshot因此不可用了
 	FirstIndex() (uint64, error)
 	// Snapshot returns the most recent snapshot.
 	// If snapshot is temporarily unavailable, it should return ErrSnapshotTemporarilyUnavailable,
@@ -73,6 +77,7 @@ type Storage interface {
 
 // MemoryStorage implements the Storage interface backed by an
 // in-memory array.
+// MemoryStorage通过一个内存中的数组实现了Storage接口
 type MemoryStorage struct {
 	// Protects access to all fields. Most methods of MemoryStorage are
 	// run on the raft goroutine, but Append() is run on an application
@@ -171,6 +176,7 @@ func (ms *MemoryStorage) Snapshot() (pb.Snapshot, error) {
 
 // ApplySnapshot overwrites the contents of this Storage object with
 // those of the given snapshot.
+// ApplySnapshot用给定的snapshot覆盖Storage对象的内容
 func (ms *MemoryStorage) ApplySnapshot(snap pb.Snapshot) error {
 	ms.Lock()
 	defer ms.Unlock()

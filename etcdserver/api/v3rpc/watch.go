@@ -45,6 +45,7 @@ type watchServer struct {
 }
 
 // NewWatchServer returns a new watch server.
+// NewWatchServer返回一个新的watch server
 func NewWatchServer(s *etcdserver.EtcdServer) pb.WatchServer {
 	return &watchServer{
 		lg: s.Cfg.Logger,
@@ -55,6 +56,7 @@ func NewWatchServer(s *etcdserver.EtcdServer) pb.WatchServer {
 		maxRequestBytes: int(s.Cfg.MaxRequestBytes + grpcOverheadBytes),
 
 		sg:        s,
+		// 用etcdserver的Watchable()进行初始化
 		watchable: s.Watchable(),
 		ag:        s,
 	}
@@ -100,6 +102,8 @@ const ctrlStreamBufLen = 16
 // from client side gRPC stream. It receives watch events from mvcc.WatchStream,
 // and creates responses that forwarded to gRPC stream.
 // It also forwards control message like watch created and canceled.
+// serverWatchStream是一个etcd server side stream，它从client side grpc stream接收请求
+// 它再从mvcc.WatchStream接收watch events并且创建responses转发到grpc stream.
 type serverWatchStream struct {
 	lg *zap.Logger
 
@@ -149,6 +153,7 @@ func (ws *watchServer) Watch(stream pb.Watch_WatchServer) (err error) {
 		gRPCStream:  stream,
 		watchStream: ws.watchable.NewWatchStream(),
 		// chan for sending control response like watcher created and canceled.
+		// 用于发送control reponse，例如创建或者消除watcher到channel
 		ctrlStream: make(chan *pb.WatchResponse, ctrlStreamBufLen),
 
 		progress: make(map[mvcc.WatchID]bool),
@@ -228,11 +233,13 @@ func (sws *serverWatchStream) recvLoop() error {
 		}
 
 		switch uv := req.RequestUnion.(type) {
+		// 创建Watch请求
 		case *pb.WatchRequest_CreateRequest:
 			if uv.CreateRequest == nil {
 				break
 			}
 
+			// 从中取出创建请求
 			creq := uv.CreateRequest
 			if len(creq.Key) == 0 {
 				// \x00 is the smallest key
@@ -249,6 +256,7 @@ func (sws *serverWatchStream) recvLoop() error {
 			}
 
 			if !sws.isWatchPermitted(creq) {
+				// 
 				wr := &pb.WatchResponse{
 					Header:       sws.newResponseHeader(sws.watchStream.Rev()),
 					WatchId:      creq.WatchId,
@@ -271,6 +279,7 @@ func (sws *serverWatchStream) recvLoop() error {
 			if rev == 0 {
 				rev = wsrev + 1
 			}
+			// 开始进行watch
 			id, err := sws.watchStream.Watch(mvcc.WatchID(creq.WatchId), creq.Key, creq.RangeEnd, rev, filters...)
 			if err == nil {
 				sws.mu.Lock()
@@ -287,6 +296,7 @@ func (sws *serverWatchStream) recvLoop() error {
 			}
 			wr := &pb.WatchResponse{
 				Header:   sws.newResponseHeader(wsrev),
+				// 将watchID返回
 				WatchId:  int64(id),
 				Created:  true,
 				Canceled: err != nil,
@@ -300,6 +310,7 @@ func (sws *serverWatchStream) recvLoop() error {
 				return nil
 			}
 
+		// 取消Watch请求
 		case *pb.WatchRequest_CancelRequest:
 			if uv.CancelRequest != nil {
 				id := uv.CancelRequest.WatchId

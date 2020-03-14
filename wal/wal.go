@@ -69,6 +69,9 @@ var (
 // A newly created WAL is in append mode, and ready for appending records.
 // A just opened WAL is in read mode, and ready for reading records.
 // The WAL will be ready for appending after reading out all the previous records.
+// WAL就是stable storage的逻辑实现，WAL不是在read mode就是在append mode，但是不可能同时在这两种模式
+// 一个新建的WAL在append模式，并且准备好appending records，一个刚刚打开的WAL处于read mode，只有在之前的
+// records全部被读出之后才能appending
 type WAL struct {
 	lg *zap.Logger
 

@@ -15,4 +15,6 @@
 // Package httpproxy implements etcd httpproxy. The etcd proxy acts as a reverse
 // http proxy forwarding client requests to active etcd cluster members, and does
 // not participate in consensus.
+// httpproxy实现了etcd httpproxy，etcd proxy作为一个反向http代理存在，它转发用户请求到active cluster memers
+// 但是不参与共识
 package httpproxy

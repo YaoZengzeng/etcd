@@ -67,10 +67,12 @@ const (
 )
 
 // Etcd contains a running etcd server and its listeners.
+// Etcd包含一个正在运行的etcd server以及它的listeners
 type Etcd struct {
 	Peers   []*peerListener
 	Clients []net.Listener
 	// a map of contexts for the servers that serves client requests.
+	// 一系列的contexts，用于servers服务client的请求
 	sctxs            map[string]*serveCtx
 	metricsListeners []net.Listener
 
@@ -92,6 +94,8 @@ type peerListener struct {
 // StartEtcd launches the etcd server and HTTP handlers for client/server communication.
 // The returned Etcd.Server is not guaranteed to have joined the cluster. Wait
 // on the Etcd.Server.ReadyNotify() channel to know when it completes and is ready for use.
+// StartEtcd启动etcd server以及HTTP handlers用于client和server的交互
+// 返回的Etcd.Server不保证已经加入了cluster，等待Etcd.Server.ReadyNotify()这个channle来获取节点是否ready
 func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 	if err = inCfg.Validate(); err != nil {
 		return nil, err
@@ -119,6 +123,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 			zap.Strings("listen-peer-urls", e.cfg.getLPURLs()),
 		)
 	}
+	// 配置peer listeners
 	if e.Peers, err = configurePeerListeners(cfg); err != nil {
 		return e, err
 	}
@@ -213,6 +218,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 	}
 
 	// buffer channel so goroutines on closed connections won't wait forever
+	// buffer channel，因此对于关闭的连接的goroutines不会一直等待
 	e.errc = make(chan error, len(e.Peers)+len(e.Clients)+2*len(e.sctxs))
 
 	// newly started member ("memberInitialized==false")
@@ -346,8 +352,11 @@ func (e *Etcd) Config() Config {
 }
 
 // Close gracefully shuts down all servers/listeners.
+// Close优雅地关闭所有的servers/listeners
 // Client requests will be terminated with request timeout.
+// 用户请求会在request timeout之后被关闭
 // After timeout, enforce remaning requests be closed immediately.
+// 在timeout之后，强制剩余的请求立刻关闭
 func (e *Etcd) Close() {
 	fields := []zap.Field{
 		zap.String("name", e.cfg.Name),
@@ -606,6 +615,7 @@ func configureClientListeners(cfg *Config) (sctxs map[string]*serveCtx, err erro
 	}
 
 	sctxs = make(map[string]*serveCtx)
+	// 遍历client的url
 	for _, u := range cfg.LCUrls {
 		sctx := newServeCtx(cfg.logger)
 		if u.Scheme == "http" || u.Scheme == "unix" {
@@ -754,6 +764,7 @@ func (e *Etcd) serveClients() (err error) {
 	return nil
 }
 
+// 创建metrics server
 func (e *Etcd) serveMetrics() (err error) {
 	if e.cfg.Metrics == "extensive" {
 		grpc_prometheus.EnableHandlingTimeHistogram()
@@ -766,8 +777,10 @@ func (e *Etcd) serveMetrics() (err error) {
 		for _, murl := range e.cfg.ListenMetricsUrls {
 			tlsInfo := &e.cfg.ClientTLSInfo
 			if murl.Scheme == "http" {
+				// scheme为http则不需要http
 				tlsInfo = nil
 			}
+			// 增加一个metrics listener
 			ml, err := transport.NewListener(murl.Host, murl.Scheme, tlsInfo)
 			if err != nil {
 				return err

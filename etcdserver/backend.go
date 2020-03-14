@@ -65,11 +65,13 @@ func openSnapshotBackend(cfg ServerConfig, ss *snap.Snapshotter, snapshot raftpb
 }
 
 // openBackend returns a backend using the current etcd db.
+// openBackend返回一个backend，使用当前的etcd db
 func openBackend(cfg ServerConfig) backend.Backend {
 	fn := cfg.backendPath()
 
 	now, beOpened := time.Now(), make(chan backend.Backend)
 	go func() {
+		// 打开后端存储
 		beOpened <- newBackend(cfg)
 	}()
 
@@ -93,6 +95,7 @@ func openBackend(cfg ServerConfig) backend.Backend {
 		}
 	}
 
+	// 最终还是会等待backend打开完成
 	return <-beOpened
 }
 

@@ -48,6 +48,7 @@ func (wv *writeView) DeleteRange(key, end []byte) (n, rev int64) {
 }
 
 func (wv *writeView) Put(key, value []byte, lease lease.LeaseID) (rev int64) {
+	// 直接用kv获取一个write transaction
 	tw := wv.kv.Write(traceutil.TODO())
 	defer tw.End()
 	return tw.Put(key, value, lease)

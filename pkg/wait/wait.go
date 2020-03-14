@@ -23,6 +23,7 @@ import (
 
 // Wait is an interface that provides the ability to wait and trigger events that
 // are associated with IDs.
+// Wait是一个接口，它提供了如下的能力：它会一直等待直到相关ID的事件被触发
 type Wait interface {
 	// Register waits returns a chan that waits on the given ID.
 	// The chan will be triggered when Trigger is called with

@@ -22,6 +22,7 @@ import (
 )
 
 // StoreRecorder provides a Store interface with a testutil.Recorder
+// StoreRecorder提供了一个Store接口以及一个testutil.Recorder
 type StoreRecorder struct {
 	v2store.Store
 	testutil.Recorder
@@ -45,6 +46,7 @@ func NewRecorderStream() *StoreRecorder {
 	return &StoreRecorder{Store: sr, Recorder: sr.Recorder}
 }
 
+// storeRecord仅仅只是对操作进行记录，不会真正对数据进行保存
 func (s *storeRecorder) Version() int  { return 0 }
 func (s *storeRecorder) Index() uint64 { return 0 }
 func (s *storeRecorder) Get(path string, recursive, sorted bool) (*v2store.Event, error) {

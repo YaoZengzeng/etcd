@@ -84,6 +84,7 @@ type store struct {
 }
 
 // New creates a store where the given namespaces will be created as initial directories.
+// New创建一个store，给定的namespace会被创建作为初始的目录
 func New(namespaces ...string) Store {
 	s := newStore(namespaces...)
 	s.clock = clockwork.NewRealClock()

@@ -36,8 +36,11 @@ import (
 const (
 	// In the health case, there might be a small gap (10s of entries) between
 	// the applied index and committed index.
+	// 在健康的状况下，在applied index和committed index之间可能有一个小的gap(例如10s)
 	// However, if the committed entries are very heavy to apply, the gap might grow.
 	// We should stop accepting new proposals if the gap growing to a certain point.
+	// 但是如果有很多的commited entries等着被apply，这个gap可能会增大，我们应该停止接收新的proposals
+	// 如果gap变得过大的话
 	maxGapBetweenApplyAndCommitIndex = 5000
 	traceThreshold                   = 100 * time.Millisecond
 )
@@ -614,10 +617,12 @@ func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.In
 	ai := s.getAppliedIndex()
 	ci := s.getCommittedIndex()
 	if ci > ai+maxGapBetweenApplyAndCommitIndex {
+		// 未apply的请求过多
 		return nil, ErrTooManyRequests
 	}
 
 	r.Header = &pb.RequestHeader{
+		// ID不断递增
 		ID: s.reqIDGen.Next(),
 	}
 
@@ -630,11 +635,13 @@ func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.In
 		r.Header.AuthRevision = authInfo.Revision
 	}
 
+	// 对请求进行marshal
 	data, err := r.Marshal()
 	if err != nil {
 		return nil, err
 	}
 
+	// 如果数据过大则也要返回错误
 	if len(data) > int(s.Cfg.MaxRequestBytes) {
 		return nil, ErrRequestTooLarge
 	}
@@ -671,6 +678,7 @@ func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.In
 }
 
 // Watchable returns a watchable interface attached to the etcdserver.
+// Watchable返回一个和etcdserver关联的，可以watch的接口
 func (s *EtcdServer) Watchable() mvcc.WatchableKV { return s.KV() }
 
 func (s *EtcdServer) linearizableReadLoop() {

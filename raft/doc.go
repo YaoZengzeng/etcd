@@ -29,9 +29,11 @@ Usage
 
 The primary object in raft is a Node. You either start a Node from scratch
 using raft.StartNode or start a Node from some initial state using raft.RestartNode.
+// raft中主要的对象是Node，可以用raft.StartNode从头开始启动一个Node或者使用raft.RestartNode从一个初始状态启动一个Node
 
 To start a node from scratch:
 
+  // 构建memory storage
   storage := raft.NewMemoryStorage()
   c := &Config{
     ID:              0x01,
@@ -49,6 +51,7 @@ To restart a node from previous state:
 
   // recover the in-memory storage from persistent
   // snapshot, state and entries.
+  // 从持久化的snapshot，state以及entries中恢复in-memory storage
   storage.ApplySnapshot(snapshot)
   storage.SetHardState(state)
   storage.Append(entries)
@@ -71,6 +74,7 @@ Now that you are holding onto a Node you have a few responsibilities:
 First, you must read from the Node.Ready() channel and process the updates
 it contains. These steps may be performed in parallel, except as noted in step
 2.
+// 需要从Node.Ready()这个channel中读取数据并且处理它包含的更新
 
 1. Write HardState, Entries, and Snapshot to persistent storage if they are
 not empty. Note that when writing an Entry with Index i, any

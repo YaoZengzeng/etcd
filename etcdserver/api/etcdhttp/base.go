@@ -45,6 +45,7 @@ const (
 
 // HandleBasic adds handlers to a mux for serving JSON etcd client requests
 // that do not access the v2 store.
+// HandleBasic增加一个handlers到mux用于服务JSON格式的不访问v2 store的etcd客户端请求
 func HandleBasic(mux *http.ServeMux, server etcdserver.ServerPeer) {
 	mux.HandleFunc(varsPath, serveVars)
 

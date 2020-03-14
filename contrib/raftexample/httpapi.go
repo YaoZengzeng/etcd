@@ -41,10 +41,13 @@ func (h *httpKVAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// 对kv进行提交
 		h.store.Propose(key, string(v))
 
 		// Optimistic-- no waiting for ack from raft. Value is not yet
 		// committed so a subsequent GET on the key may return old value
+		// 优化 --- 不等待来自raft的ack，Value还没有被提交，因此后续对于key的GET
+		// 可能返回一个老的值
 		w.WriteHeader(http.StatusNoContent)
 	case r.Method == "GET":
 		if v, ok := h.store.Lookup(key); ok {
@@ -102,6 +105,7 @@ func (h *httpKVAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // serveHttpKVAPI starts a key-value server with a GET/PUT API and listens.
+// serveHttpKVAPI启动一个key-value server，它有着一个GET/PUT API并且进行监听
 func serveHttpKVAPI(kv *kvstore, port int, confChangeC chan<- raftpb.ConfChange, errorC <-chan error) {
 	srv := http.Server{
 		Addr: ":" + strconv.Itoa(port),

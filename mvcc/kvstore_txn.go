@@ -60,6 +60,7 @@ type storeTxnWrite struct {
 	storeTxnRead
 	tx backend.BatchTx
 	// beginRev is the revision where the txn begins; it will write to the next revision.
+	// beginRev上txn开始时的revision，它会写入下一个revision
 	beginRev int64
 	changes  []mvccpb.KeyValue
 }
@@ -178,6 +179,7 @@ func (tw *storeTxnWrite) put(key, value []byte, leaseID lease.LeaseID) {
 
 	// if the key exists before, use its previous created and
 	// get its previous leaseID
+	// 如果key在之前已经存在了，使用之前创建的并且获取它的leaseID
 	_, created, ver, err := tw.s.kvindex.Get(key, rev)
 	if err == nil {
 		c = created.main
@@ -185,6 +187,7 @@ func (tw *storeTxnWrite) put(key, value []byte, leaseID lease.LeaseID) {
 	}
 	tw.trace.Step("get key's previous created_revision and leaseID")
 	ibytes := newRevBytes()
+	// 小版本号为当前变更的数目
 	idxRev := revision{main: rev, sub: int64(len(tw.changes))}
 	revToBytes(idxRev, ibytes)
 
@@ -193,7 +196,9 @@ func (tw *storeTxnWrite) put(key, value []byte, leaseID lease.LeaseID) {
 		Key:            key,
 		Value:          value,
 		CreateRevision: c,
+		// ModRevision是当前修改的revision
 		ModRevision:    rev,
+		// version是这个key存在的信息
 		Version:        ver,
 		Lease:          int64(leaseID),
 	}
@@ -211,8 +216,12 @@ func (tw *storeTxnWrite) put(key, value []byte, leaseID lease.LeaseID) {
 	}
 
 	tw.trace.Step("marshal mvccpb.KeyValue")
+	// 将KeyValue写入boltdb，ibytes是版本信息
+	// boltdb中key为revision，d为该版本的变更内容
 	tw.tx.UnsafeSeqPut(keyBucketName, ibytes, d)
+	// 将key和idxRev放入kvindex中
 	tw.s.kvindex.Put(key, idxRev)
+	// 扩展changes
 	tw.changes = append(tw.changes, kv)
 	tw.trace.Step("store kv pair into bolt db")
 

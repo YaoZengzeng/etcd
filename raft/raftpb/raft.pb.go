@@ -219,6 +219,7 @@ func (ConfChangeTransition) EnumDescriptor() ([]byte, []int) { return fileDescri
 type ConfChangeType int32
 
 const (
+	// 配置更改的类型可能是增加节点，移除节点，更新节点或者增加Learner Node
 	ConfChangeAddNode        ConfChangeType = 0
 	ConfChangeRemoveNode     ConfChangeType = 1
 	ConfChangeUpdateNode     ConfChangeType = 2

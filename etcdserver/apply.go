@@ -48,6 +48,7 @@ type applyResult struct {
 }
 
 // applierV3 is the interface for processing V3 raft messages
+// applierV3是用于处理V3 raft messages的接口
 type applierV3 interface {
 	Apply(r *pb.InternalRaftRequest) *applyResult
 
@@ -119,10 +120,12 @@ func (a *applierV3backend) Apply(r *pb.InternalRaftRequest) *applyResult {
 	}(time.Now())
 
 	// call into a.s.applyV3.F instead of a.F so upper appliers can check individual calls
+	// 调用a.s.applyV3.F而不是a.F，这样上层的appliers可以检查每次调用
 	switch {
 	case r.Range != nil:
 		ar.resp, ar.err = a.s.applyV3.Range(context.TODO(), nil, r.Range)
 	case r.Put != nil:
+		// 从InternalRaftRequest获取r.Put
 		ar.resp, ar.trace, ar.err = a.s.applyV3.Put(nil, r.Put)
 	case r.DeleteRange != nil:
 		ar.resp, ar.err = a.s.applyV3.DeleteRange(nil, r.DeleteRange)
@@ -176,6 +179,7 @@ func (a *applierV3backend) Apply(r *pb.InternalRaftRequest) *applyResult {
 	return ar
 }
 
+// 最终由applierV3backend调用Put()方法写入真实的数据
 func (a *applierV3backend) Put(txn mvcc.TxnWrite, p *pb.PutRequest) (resp *pb.PutResponse, trace *traceutil.Trace, err error) {
 	resp = &pb.PutResponse{}
 	resp.Header = &pb.ResponseHeader{}
@@ -191,6 +195,7 @@ func (a *applierV3backend) Put(txn mvcc.TxnWrite, p *pb.PutRequest) (resp *pb.Pu
 				return nil, nil, lease.ErrLeaseNotFound
 			}
 		}
+		// 如果txn为nil，则直接调用etcdserver的KV().Write()获取txn
 		txn = a.s.KV().Write(trace)
 		defer txn.End()
 	}
@@ -223,6 +228,7 @@ func (a *applierV3backend) Put(txn mvcc.TxnWrite, p *pb.PutRequest) (resp *pb.Pu
 		}
 	}
 
+	// 调用txn的Put方法将key和value写入
 	resp.Header.Revision = txn.Put(p.Key, val, leaseID)
 	trace.AddField(traceutil.Field{Key: "response_revision", Value: resp.Header.Revision})
 	return resp, trace, nil

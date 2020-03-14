@@ -26,8 +26,10 @@ import (
 
 // a key-value store backed by raft
 type kvstore struct {
+	// 用于proposing updates的channel
 	proposeC    chan<- string // channel for proposing updates
 	mu          sync.RWMutex
+	// 当前已经提交的键值对
 	kvStore     map[string]string // current committed key-value pairs
 	snapshotter *snap.Snapshotter
 }
@@ -40,8 +42,10 @@ type kv struct {
 func newKVStore(snapshotter *snap.Snapshotter, proposeC chan<- string, commitC <-chan *string, errorC <-chan error) *kvstore {
 	s := &kvstore{proposeC: proposeC, kvStore: make(map[string]string), snapshotter: snapshotter}
 	// replay log into key-value map
+	// 将log重放倒key-value map中
 	s.readCommits(commitC, errorC)
 	// read commits from raft into kvStore map until error
+	// 从raft中读取commits到kvStore map直到发生错误
 	go s.readCommits(commitC, errorC)
 	return s
 }
@@ -58,6 +62,7 @@ func (s *kvstore) Propose(k string, v string) {
 	if err := gob.NewEncoder(&buf).Encode(kv{k, v}); err != nil {
 		log.Fatal(err)
 	}
+	// 对kv进行编码后，提交给proposeC
 	s.proposeC <- buf.String()
 }
 
@@ -66,6 +71,7 @@ func (s *kvstore) readCommits(commitC <-chan *string, errorC <-chan error) {
 		if data == nil {
 			// done replaying log; new data incoming
 			// OR signaled to load snapshot
+			// replaying log结束；接收到新的数据或者表示要去加载snapshot
 			snapshot, err := s.snapshotter.Load()
 			if err == snap.ErrNoSnapshot {
 				return
@@ -81,6 +87,7 @@ func (s *kvstore) readCommits(commitC <-chan *string, errorC <-chan error) {
 		}
 
 		var dataKv kv
+		// 从commit log中解析出kv
 		dec := gob.NewDecoder(bytes.NewBufferString(*data))
 		if err := dec.Decode(&dataKv); err != nil {
 			log.Fatalf("raftexample: could not decode message (%v)", err)
@@ -97,6 +104,7 @@ func (s *kvstore) readCommits(commitC <-chan *string, errorC <-chan error) {
 func (s *kvstore) getSnapshot() ([]byte, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	// 将kvStore进行marshal就能返回snapshot
 	return json.Marshal(s.kvStore)
 }
 

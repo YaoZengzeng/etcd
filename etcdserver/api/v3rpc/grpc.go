@@ -35,6 +35,7 @@ const (
 	maxSendBytes      = math.MaxInt32
 )
 
+// 根据EtcdServer以及一系列配置创建grpc Server
 func Server(s *etcdserver.EtcdServer, tls *tls.Config, gopts ...grpc.ServerOption) *grpc.Server {
 	var opts []grpc.ServerOption
 	opts = append(opts, grpc.CustomCodec(&codec{}))

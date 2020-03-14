@@ -32,6 +32,7 @@ import (
 
 func TestWatch(t *testing.T) {
 	b, tmpPath := backend.NewDefaultTmpBackend()
+	// 构建watchable store
 	s := newWatchableStore(zap.NewExample(), b, &lease.FakeLessor{}, nil, StoreConfig{})
 
 	defer func() {
@@ -46,6 +47,7 @@ func TestWatch(t *testing.T) {
 	w := s.NewWatchStream()
 	w.Watch(0, testKey, nil, 0)
 
+	// 这个put的key必须在synced中有个item存在
 	if !s.synced.contains(string(testKey)) {
 		// the key must have had an entry in synced
 		t.Errorf("existence = false, want true")
@@ -137,6 +139,8 @@ func TestCancelUnsynced(t *testing.T) {
 // TestSyncWatchers populates unsynced watcher map and tests syncWatchers
 // method to see if it correctly sends events to channel of unsynced watchers
 // and moves these watchers to synced.
+// TestSyncWatchers填充unsynced watcher map并且检测syncWatchers方法来查看它是否正确地发送
+// events到unsynced watchers的chennel并且将这些watchers进行同步
 func TestSyncWatchers(t *testing.T) {
 	b, tmpPath := backend.NewDefaultTmpBackend()
 
@@ -160,8 +164,10 @@ func TestSyncWatchers(t *testing.T) {
 	// arbitrary number for watchers
 	watcherN := 100
 
+	// 创建100个watchers
 	for i := 0; i < watcherN; i++ {
 		// specify rev as 1 to keep watchers in unsynced
+		// 指定rev为1来保持watchers处于未同步的状态
 		w.Watch(0, testKey, nil, 1)
 	}
 
@@ -179,6 +185,7 @@ func TestSyncWatchers(t *testing.T) {
 	}
 
 	// this should move all unsynced watchers to synced ones
+	// 以下函数应该将所有的unsynced watchers移动到synced ones
 	s.syncWatchers()
 
 	sws = s.synced.watcherSetByKey(string(testKey))

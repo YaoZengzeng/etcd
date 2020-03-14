@@ -13,4 +13,5 @@
 // limitations under the License.
 
 // Package api manages the capabilities and features that are exposed to clients by the etcd cluster.
+// api包管理etcd cluster暴露给clients的能力以及特性
 package api

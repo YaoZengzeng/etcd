@@ -69,10 +69,13 @@ func init() {
 // an apply is consumed, the entries will be persisted to
 // to raft storage concurrently; the application must read
 // raftDone before assuming the raft messages are stable.
+// apply包含了要apply的entries, snapshot，一旦apply被消费，entries会并行地
+// 持久化到raft storage中，application必须读取raftDone在确认raft message稳定之前
 type apply struct {
 	entries  []raftpb.Entry
 	snapshot raftpb.Snapshot
 	// notifyc synchronizes etcd server applies with the raft node
+	// notifyc和etcd server同步raft node的applies
 	notifyc chan struct{}
 }
 
@@ -113,6 +116,9 @@ type raftNodeConfig struct {
 	// Sending messages MUST NOT block. It is okay to drop messages, since
 	// clients should timeout and reissue their messages.
 	// If transport is nil, server will panic.
+	// transport指定发送和接收msgs到members的transport
+	// 发送messages不能被阻塞，丢弃messages是合法的，因为clients应该超时并且重发它们的messages
+	// 如果transport为nil，则server会panic
 	transport rafthttp.Transporter
 }
 
@@ -159,6 +165,7 @@ func (r *raftNode) tick() {
 
 // start prepares and starts raftNode in a new goroutine. It is no longer safe
 // to modify the fields after it has been started.
+// start在一个新的goroutine准备并且启动raftNode，在启动之后修改字段是不安全的
 func (r *raftNode) start(rh *raftReadyHandler) {
 	internalTimeout := time.Second
 
@@ -225,6 +232,7 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 
 				// the leader can write to its disk in parallel with replicating to the followers and them
 				// writing to their disks.
+				// leader可以同步地将log写入磁盘以及复制到followers并且写入它们的磁盘
 				// For more details, check raft thesis 10.2.1
 				if islead {
 					// gofail: var raftBeforeLeaderSend struct{}
@@ -266,6 +274,7 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 					// gofail: var raftAfterApplySnap struct{}
 				}
 
+				// 用entries来扩展raft存储
 				r.raftStorage.Append(rd.Entries)
 
 				if !islead {
@@ -431,6 +440,7 @@ func startNode(cfg ServerConfig, cl *membership.RaftCluster, ids []types.ID) (id
 			ClusterID: uint64(cl.ID()),
 		},
 	)
+	// 创建wal
 	if w, err = wal.Create(cfg.Logger, cfg.WALDir(), metadata); err != nil {
 		if cfg.Logger != nil {
 			cfg.Logger.Panic("failed to create WAL", zap.Error(err))

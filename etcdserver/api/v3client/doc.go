@@ -13,8 +13,10 @@
 // limitations under the License.
 
 // Package v3client provides clientv3 interfaces from an etcdserver.
+// v3client包为一个etcdserver提供clientv3的接口
 //
 // Use v3client by creating an EtcdServer instance, then wrapping it with v3client.New:
+// 通过创建一个EtcdServer实例再用v3client.New封装它来使用v3client
 //
 //	import (
 //		"context"
@@ -37,6 +39,7 @@
 //	cli := v3client.New(e.Server)
 //
 //	// use like an ordinary clientv3
+//	// 可以向一个原生的clientv3一样使用
 //	resp, err := cli.Put(context.TODO(), "some-key", "it works!")
 //	if err != nil {
 //		// handle error!

@@ -20,6 +20,8 @@ A WAL is created at a particular directory and is made up of a number of
 segmented WAL files. Inside of each file the raft state and entries are appended
 to it with the Save method:
 
+WAL由一系列的segment WAL files组成，在每个文件中，raft state和entries都用Save方法保存
+
 	metadata := []byte{}
 	w, err := wal.Create(zap.NewExample(), "/var/lib/etcd", metadata)
 	...

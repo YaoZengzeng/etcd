@@ -27,6 +27,7 @@ import (
 // New creates a clientv3 client that wraps an in-process EtcdServer. Instead
 // of making gRPC calls through sockets, the client makes direct function calls
 // to the etcd server through its api/v3rpc function interfaces.
+// New封装一个正在运行的EtcdServer从而创建一个clientv3，client直接通过api.v3rpc的函数接口进行函数调用
 func New(s *etcdserver.EtcdServer) *clientv3.Client {
 	c := clientv3.NewCtxClient(context.Background())
 

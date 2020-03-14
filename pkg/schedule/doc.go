@@ -13,4 +13,5 @@
 // limitations under the License.
 
 // Package schedule provides mechanisms and policies for scheduling units of work.
+// schedule包提供了用于调度一系列work的机制和策略
 package schedule

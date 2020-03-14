@@ -71,6 +71,7 @@ const (
 	DefaultStrictReconfigCheck = true
 	// DefaultEnableV2 is the default value for "--enable-v2" flag.
 	// v2 API is disabled by default.
+	// V2 API默认被禁止
 	DefaultEnableV2 = false
 
 	// maxElectionMs specifies the maximum value of election timeout.
@@ -367,14 +368,18 @@ type securityConfig struct {
 
 // NewConfig creates a new Config populated with default values.
 func NewConfig() *Config {
+	// 监听本地的2380端口
 	lpurl, _ := url.Parse(DefaultListenPeerURLs)
+	// DefaultInitialAdvertisePeerURLs也是本地的2380
 	apurl, _ := url.Parse(DefaultInitialAdvertisePeerURLs)
+	// 监听本地的2379端口
 	lcurl, _ := url.Parse(DefaultListenClientURLs)
 	acurl, _ := url.Parse(DefaultAdvertiseClientURLs)
 	cfg := &Config{
 		MaxSnapFiles: DefaultMaxSnapshots,
 		MaxWalFiles:  DefaultMaxWALs,
 
+		// 默认的名字为default
 		Name: DefaultName,
 
 		SnapshotCount:          etcdserver.DefaultSnapshotCount,
@@ -396,11 +401,13 @@ func NewConfig() *Config {
 		APUrls: []url.URL{*apurl},
 		ACUrls: []url.URL{*acurl},
 
+		// 默认创建新的集群
 		ClusterState:        ClusterStateFlagNew,
 		InitialClusterToken: "etcd-cluster",
 
 		StrictReconfigCheck: DefaultStrictReconfigCheck,
 		Metrics:             "basic",
+		// V2默认被禁止
 		EnableV2:            DefaultEnableV2,
 
 		CORS:          map[string]struct{}{"*": {}},

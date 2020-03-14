@@ -35,6 +35,7 @@ func (*RequestHeader) Descriptor() ([]byte, []int) { return fileDescriptorRaftIn
 
 // An InternalRaftRequest is the union of all requests which can be
 // sent via raft.
+// InternalRaftRequest上所有能够通过raft发送的请求的组合
 type InternalRaftRequest struct {
 	Header                   *RequestHeader                   `protobuf:"bytes,100,opt,name=header" json:"header,omitempty"`
 	ID                       uint64                           `protobuf:"varint,1,opt,name=ID,proto3" json:"ID,omitempty"`

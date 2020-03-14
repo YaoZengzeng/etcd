@@ -13,6 +13,7 @@
 // limitations under the License.
 
 // Package v3alarm manages health status alarms in etcd.
+// v3alarm管理etcd中的健康状态告警
 package v3alarm
 
 import (

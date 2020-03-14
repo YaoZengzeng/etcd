@@ -185,6 +185,7 @@ type Server interface {
 }
 
 // EtcdServer is the production implementation of the Server interface
+// EtcdServer是Server接口的生产级别的实现
 type EtcdServer struct {
 	// inflightSnapshots holds count the number of snapshots currently inflight.
 	inflightSnapshots int64  // must use atomic operations to access; keep 64-bit aligned.
@@ -212,6 +213,7 @@ type EtcdServer struct {
 	readwaitc chan struct{}
 	// readNotifier is used to notify the read routine that it can process the request
 	// when there is no error
+	// readNotifier用来通知read routine，它可以处理请求如果没有error的话
 	readNotifier *notifier
 
 	// stop signals the run goroutine should shutdown.
@@ -238,12 +240,15 @@ type EtcdServer struct {
 	// applyV3 is the applier with auth and quotas
 	applyV3 applierV3
 	// applyV3Base is the core applier without auth or quotas
+	// applyV3Base是核心的applier，没有auth或者quotas
 	applyV3Base applierV3
 	applyWait   wait.WaitTime
 
+	// 多版本kv
 	kv         mvcc.ConsistentWatchableKV
 	lessor     lease.Lessor
 	bemu       sync.Mutex
+	// backend用来存储真正的kv数据
 	be         backend.Backend
 	authStore  auth.AuthStore
 	alarmStore *v3alarm.AlarmStore
@@ -253,9 +258,11 @@ type EtcdServer struct {
 
 	SyncTicker *time.Ticker
 	// compactor is used to auto-compact the KV.
+	// compactor用来自动压缩KV
 	compactor v3compactor.Compactor
 
 	// peerRt used to send requests (version, lease) to peers.
+	// peerRt用来发送请求（version，lease）	到peers
 	peerRt   http.RoundTripper
 	reqIDGen *idutil.Generator
 
@@ -282,7 +289,9 @@ type EtcdServer struct {
 
 // NewServer creates a new EtcdServer from the supplied configuration. The
 // configuration is considered static for the lifetime of the EtcdServer.
+// NewServer从提供的配置创建一个新的EtcdServer，这个配置可以认为在EtcdServer的整个生命周期都是静态的
 func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
+	// StoreClusterPrefix为"/0", StoreKeysPrefix为"/1"
 	st := v2store.New(StoreClusterPrefix, StoreKeysPrefix)
 
 	var (
@@ -328,6 +337,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 
 	bepath := cfg.backendPath()
 	beExist := fileutil.Exist(bepath)
+	// 打开backend
 	be := openBackend(cfg)
 
 	defer func() {
@@ -369,6 +379,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 		cl.SetID(types.ID(0), existingCluster.ID())
 		cl.SetStore(st)
 		cl.SetBackend(be)
+		// 构建raft node
 		id, n, s, w = startNode(cfg, cl, nil)
 		cl.SetID(id, existingCluster.ID())
 
@@ -385,6 +396,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 			return nil, fmt.Errorf("member %s has already been bootstrapped", m.ID)
 		}
 		if cfg.ShouldDiscover() {
+			// 通过discovery接口创建cluster
 			var str string
 			str, err = v2discovery.JoinCluster(cfg.Logger, cfg.DiscoveryURL, cfg.DiscoveryProxy, m.ID, cfg.InitialPeerURLsMap.String())
 			if err != nil {
@@ -509,6 +521,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 				Node:        n,
 				heartbeat:   heartbeat,
 				raftStorage: s,
+				// 重新封装了一层，在wal和snapshot的基础之上
 				storage:     NewStorage(w, ss),
 			},
 		),
@@ -532,6 +545,8 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 
 	// always recover lessor before kv. When we recover the mvcc.KV it will reattach keys to its leases.
 	// If we recover mvcc.KV first, it will attach the keys to the wrong lessor before it recovers.
+	// 总是在kv之前先恢复lessor，当我们从mvcc.KV恢复时，它会重新连接key到它的leases
+	// 如果我们先恢复mvcc.KV，它会在recover的时候连接key到错误的lessor
 	srv.lessor = lease.NewLessor(
 		srv.getLogger(),
 		srv.be,
@@ -540,6 +555,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 			CheckpointInterval:         cfg.LeaseCheckpointInterval,
 			ExpiredLeasesRetryInterval: srv.Cfg.ReqTimeout(),
 		})
+	// 构建KV
 	srv.kv = mvcc.New(srv.getLogger(), srv.be, srv.lessor, &srv.consistIndex, mvcc.StoreConfig{CompactionBatchLimit: cfg.CompactionBatchLimit})
 	if beExist {
 		kvindex := srv.kv.ConsistentIndex()
@@ -623,6 +639,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 	// add all remotes into transport
 	for _, m := range remotes {
 		if m.ID != id {
+			// 将各个远程节点加入的transport中
 			tr.AddRemote(m.ID, m.PeerURLs)
 		}
 	}
@@ -725,6 +742,8 @@ func (s *EtcdServer) adjustTicks() {
 // begin serving requests. It must be called before Do or Process.
 // Start must be non-blocking; any long-running server functionality
 // should be implemented in goroutines.
+// Start执行所有必要的初始化操作用来让Server能够处理请求，它必须在Do或者Process之前运行
+// Start必须是非阻塞的；任何长期运行的server功能都需要在goroutines中实现
 func (s *EtcdServer) Start() {
 	s.start()
 	s.goAttach(func() { s.adjustTicks() })
@@ -739,6 +758,7 @@ func (s *EtcdServer) Start() {
 // start prepares and starts server in a new goroutine. It is no longer safe to
 // modify a server's fields after it has been sent to Start.
 // This function is just used for testing.
+// start在一个新的goroutine中准备并且启动server
 func (s *EtcdServer) start() {
 	lg := s.getLogger()
 
@@ -772,6 +792,7 @@ func (s *EtcdServer) start() {
 	s.stopping = make(chan struct{})
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 	s.readwaitc = make(chan struct{}, 1)
+	// 创建read notifier
 	s.readNotifier = newNotifier()
 	s.leaderChanged = make(chan struct{})
 	if s.ClusterVersion() != nil {
@@ -899,6 +920,7 @@ type etcdProgress struct {
 
 // raftReadyHandler contains a set of EtcdServer operations to be called by raftNode,
 // and helps decouple state machine logic from Raft algorithms.
+// raftReadyHandler包含一系列由raftNode调用的EtcdServer操作并且帮助从Raft algorithms中结构状态机的逻辑
 // TODO: add a state machine interface to apply the commit entries and do snapshot/recover
 type raftReadyHandler struct {
 	getLead              func() (lead uint64)
@@ -920,6 +942,7 @@ func (s *EtcdServer) run() {
 	}
 
 	// asynchronously accept apply packets, dispatch progress in-order
+	// 异步地接收apply packets并且按顺序分发
 	sched := schedule.NewFIFOScheduler()
 
 	var (
@@ -1009,6 +1032,7 @@ func (s *EtcdServer) run() {
 
 		// kv, lessor and backend can be nil if running without v3 enabled
 		// or running unit tests.
+		// 关闭kv, lessor以及backend
 		if s.lessor != nil {
 			s.lessor.Stop()
 		}
@@ -1034,7 +1058,9 @@ func (s *EtcdServer) run() {
 
 	for {
 		select {
+		// etcdserver先向raft提交数据，再作为application消费其数据
 		case ap := <-s.r.apply():
+			// 从apply函数中获取apply{}信息
 			f := func(context.Context) { s.applyAll(&ep, &ap) }
 			sched.Schedule(f)
 		case leases := <-expiredLeaseC:
@@ -1159,6 +1185,7 @@ func (s *EtcdServer) applySnapshot(ep *etcdProgress, apply *apply) {
 	}
 
 	// wait for raftNode to persist snapshot onto the disk
+	// 等待raftNode将snapshot持久化到磁盘
 	<-apply.notifyc
 
 	newbe, err := openSnapshotBackend(s.Cfg, s.snapshotter, apply.snapshot)
@@ -2106,6 +2133,8 @@ func (s *EtcdServer) sendMergedSnap(merged snap.Message) {
 // apply takes entries received from Raft (after it has been committed) and
 // applies them to the current state of the EtcdServer.
 // The given entries should not be empty.
+// apply获取从Raft得到的entries（在它已经被commited之后）并且将它们应用到当前EtcdServer
+// 的状态，给定的entries不能为空
 func (s *EtcdServer) apply(
 	es []raftpb.Entry,
 	confState *raftpb.ConfState,
@@ -2151,6 +2180,7 @@ func (s *EtcdServer) applyEntryNormal(e *raftpb.Entry) {
 	shouldApplyV3 := false
 	if e.Index > s.consistIndex.ConsistentIndex() {
 		// set the consistent index of current executing entry
+		// 将consistent index设置为当前的etnry的Index
 		s.consistIndex.setConsistentIndex(e.Index)
 		shouldApplyV3 = true
 	}
@@ -2200,6 +2230,7 @@ func (s *EtcdServer) applyEntryNormal(e *raftpb.Entry) {
 		if !needResult && raftReq.Txn != nil {
 			removeNeedlessRangeReqs(raftReq.Txn)
 		}
+		// 应用V3
 		ar = s.applyV3.Apply(&raftReq)
 	}
 
@@ -2611,6 +2642,7 @@ func (s *EtcdServer) restoreAlarms() error {
 
 // goAttach creates a goroutine on a given function and tracks it using
 // the etcdserver waitgroup.
+// goAttach用给定的函数创建一个goroutine并且使用etcdserver的waitgroup追踪它
 func (s *EtcdServer) goAttach(f func()) {
 	s.wgMu.RLock() // this blocks with ongoing close(s.stopping)
 	defer s.wgMu.RUnlock()

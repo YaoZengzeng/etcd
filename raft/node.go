@@ -47,8 +47,11 @@ func (a *SoftState) equal(b *SoftState) bool {
 }
 
 // Ready encapsulates the entries and messages that are ready to read,
+// Ready封装准备好读取的，准备好存入stable storage的，commit或者发送给peers的
+// entries以及messages，
 // be saved to stable storage, committed or sent to other peers.
 // All fields in Ready are read-only.
+// Ready中的所有字段都是只读的
 type Ready struct {
 	// The current volatile state of a Node.
 	// SoftState will be nil if there is no update.
@@ -76,6 +79,8 @@ type Ready struct {
 	// CommittedEntries specifies entries to be committed to a
 	// store/state-machine. These have previously been committed to stable
 	// store.
+	// CommittedEntries指定了准备commit到store/state-machine的entries
+	// 这些之前已经被commit到stable store中了
 	CommittedEntries []pb.Entry
 
 	// Messages specifies outbound messages to be sent AFTER Entries are
@@ -123,6 +128,7 @@ func (rd Ready) appliedCursor() uint64 {
 }
 
 // Node represents a node in a raft cluster.
+// Node代表raft cluster里面的一个node
 type Node interface {
 	// Tick increments the internal logical clock for the Node by a single tick. Election
 	// timeouts and heartbeat timeouts are in units of ticks.
@@ -131,6 +137,8 @@ type Node interface {
 	Campaign(ctx context.Context) error
 	// Propose proposes that data be appended to the log. Note that proposals can be lost without
 	// notice, therefore it is user's job to ensure proposal retries.
+	// propose提交一个append到log的data，需要注意的是proposals可能丢失而没有通知
+	// 因此，这是用户的职责来确保proposal的重试
 	Propose(ctx context.Context, data []byte) error
 	// ProposeConfChange proposes a configuration change. Like any proposal, the
 	// configuration change may be dropped with or without an error being
@@ -147,17 +155,22 @@ type Node interface {
 	ProposeConfChange(ctx context.Context, cc pb.ConfChangeI) error
 
 	// Step advances the state machine using the given message. ctx.Err() will be returned, if any.
+	// Step用给定的message推进状态机
 	Step(ctx context.Context, msg pb.Message) error
 
 	// Ready returns a channel that returns the current point-in-time state.
+	// Ready返回一个channel用于返回当前的point-in-time state
 	// Users of the Node must call Advance after retrieving the state returned by Ready.
+	// Node的用户在接收到Ready返回的state之后必须调用Advance
 	//
 	// NOTE: No committed entries from the next Ready may be applied until all committed entries
 	// and snapshots from the previous one have finished.
+	// 需要注意的是：直到上一个committed entries以及snapshots结束之前，下一个Ready的entries都不能被apply
 	Ready() <-chan Ready
 
 	// Advance notifies the Node that the application has saved progress up to the last Ready.
 	// It prepares the node to return the next available Ready.
+	// Advance通知Node，application已经推进到上一个Ready，它准备让node返回下一个可用的Ready
 	//
 	// The application should generally call Advance after it applies the entries in last Ready.
 	//
@@ -208,7 +221,9 @@ type Peer struct {
 }
 
 // StartNode returns a new Node given configuration and a list of raft peers.
+// StartNode用给定配置和一系列的raft peer返回一个新的Node
 // It appends a ConfChangeAddNode entry for each given peer to the initial log.
+// 它为每个给定的peer添加一个ConfChangeAddNode到initial log中
 //
 // Peers must not be zero length; call RestartNode in that case.
 func StartNode(c *Config, peers []Peer) Node {
@@ -450,6 +465,7 @@ func (n *node) stepWait(ctx context.Context, m pb.Message) error {
 
 // Step advances the state machine using msgs. The ctx.Err() will be returned,
 // if any.
+// Step用msgs推进状态机，如果有错误的话，ctx.Err()会返回
 func (n *node) stepWithWaitOption(ctx context.Context, m pb.Message, wait bool) error {
 	if m.Type != pb.MsgProp {
 		select {
@@ -467,6 +483,7 @@ func (n *node) stepWithWaitOption(ctx context.Context, m pb.Message, wait bool) 
 		pm.result = make(chan error, 1)
 	}
 	select {
+	// 向propc发送proposal
 	case ch <- pm:
 		if !wait {
 			return nil

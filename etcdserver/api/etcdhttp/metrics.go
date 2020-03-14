@@ -34,6 +34,7 @@ const (
 )
 
 // HandleMetricsHealth registers metrics and health handlers.
+// HandleMetricsHealth注册metrics以及health handlers
 func HandleMetricsHealth(mux *http.ServeMux, srv etcdserver.ServerV2) {
 	mux.Handle(PathMetrics, promhttp.Handler())
 	mux.Handle(PathHealth, NewHealthHandler(func() Health { return checkHealth(srv) }))
