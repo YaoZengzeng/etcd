@@ -31,19 +31,23 @@ var ErrStepPeerNotFound = errors.New("raft: cannot step as peer not found")
 // RawNode is a thread-unsafe Node.
 // The methods of this struct correspond to the methods of Node and are described
 // more fully there.
+// RawNode是一个非线程安全的Node，这个结构体的方法对应Node的方法，但是在此处描述地更加详细
 type RawNode struct {
+	// RawNode包含了raft结构
 	raft       *raft
 	prevSoftSt *SoftState
 	prevHardSt pb.HardState
 }
 
 // NewRawNode instantiates a RawNode from the given configuration.
+// NewRawNode从给定的配置初始化一个RawNode
 //
 // See Bootstrap() for bootstrapping an initial state; this replaces the former
 // 'peers' argument to this method (with identical behavior). However, It is
 // recommended that instead of calling Bootstrap, applications bootstrap their
 // state manually by setting up a Storage that has a first index > 1 and which
 // stores the desired ConfState as its InitialState.
+// 从初始状态自举，利用Bootstrap()
 func NewRawNode(config *Config) (*RawNode, error) {
 	r := newRaft(config)
 	rn := &RawNode{
@@ -135,6 +139,8 @@ func (rn *RawNode) readyWithoutAccept() Ready {
 // acceptReady is called when the consumer of the RawNode has decided to go
 // ahead and handle a Ready. Nothing must alter the state of the RawNode between
 // this call and the prior call to Ready().
+// acceptReady会在RawNode的consumer已经决定前进并且处理了一个Ready之后被调用
+// 在这个调用和之前对于Ready()的调用，不会改变RawNode的state
 func (rn *RawNode) acceptReady(rd Ready) {
 	if rd.SoftState != nil {
 		rn.prevSoftSt = rd.SoftState
@@ -169,6 +175,7 @@ func (rn *RawNode) HasReady() bool {
 
 // Advance notifies the RawNode that the application has applied and saved progress in the
 // last Ready results.
+// Advance通知RawNode，应用已经applied并且将progress保存在最新的Ready results中
 func (rn *RawNode) Advance(rd Ready) {
 	if !IsEmptyHardState(rd.HardState) {
 		rn.prevHardSt = rd.HardState

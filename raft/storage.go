@@ -61,12 +61,14 @@ type Storage interface {
 	// rest of that entry may not be available.
 	Term(i uint64) (uint64, error)
 	// LastIndex returns the index of the last entry in the log.
+	// LastIndex返回log中最后一个entry的index
 	LastIndex() (uint64, error)
 	// FirstIndex returns the index of the first log entry that is
 	// possibly available via Entries (older entries have been incorporated
 	// into the latest Snapshot; if storage only contains the dummy entry the
 	// first log entry is not available).
 	// 比FirstIndex()更老的entries已经进入Snapshot因此不可用了
+	// 如果storage中只保存了dummy entry，则firt log entry不可用
 	FirstIndex() (uint64, error)
 	// Snapshot returns the most recent snapshot.
 	// If snapshot is temporarily unavailable, it should return ErrSnapshotTemporarilyUnavailable,
@@ -87,6 +89,7 @@ type MemoryStorage struct {
 	hardState pb.HardState
 	snapshot  pb.Snapshot
 	// ents[i] has raft log position i+snapshot.Metadata.Index
+	// ents[i]有着位于i + snapshot.Metadata.Index位置的log
 	ents []pb.Entry
 }
 
@@ -94,6 +97,7 @@ type MemoryStorage struct {
 func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
 		// When starting from scratch populate the list with a dummy entry at term zero.
+		// 当从头开始启动的时候，用一个term为0的dummy entry填充list
 		ents: make([]pb.Entry, 1),
 	}
 }
@@ -201,6 +205,7 @@ func (ms *MemoryStorage) CreateSnapshot(i uint64, cs *pb.ConfState, data []byte)
 	ms.Lock()
 	defer ms.Unlock()
 	if i <= ms.snapshot.Metadata.Index {
+		// 如果比上一个snapshot的index要小，则不做
 		return pb.Snapshot{}, ErrSnapOutOfDate
 	}
 
@@ -219,8 +224,10 @@ func (ms *MemoryStorage) CreateSnapshot(i uint64, cs *pb.ConfState, data []byte)
 }
 
 // Compact discards all log entries prior to compactIndex.
+// Compact丢弃所有在compactIndex之前的log entries
 // It is the application's responsibility to not attempt to compact an index
 // greater than raftLog.applied.
+// 至于不压缩大于raftLog.applied的index则是应用的责任
 func (ms *MemoryStorage) Compact(compactIndex uint64) error {
 	ms.Lock()
 	defer ms.Unlock()

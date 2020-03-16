@@ -43,6 +43,7 @@ func readyWithTimeout(n Node) Ready {
 
 // TestNodeStep ensures that node.Step sends msgProp to propc chan
 // and other kinds of messages to recvc chan.
+// TestNodeStep确保node.Step发送msgProp到proc chan而其他messages到recvc chan
 func TestNodeStep(t *testing.T) {
 	for i, msgn := range raftpb.MessageType_name {
 		n := &node{
@@ -61,6 +62,7 @@ func TestNodeStep(t *testing.T) {
 		} else {
 			if IsLocalMsg(msgt) {
 				select {
+				// 本地的Mesage从n.recvc得到
 				case <-n.recvc:
 					t.Errorf("%d: step should ignore %s", msgt, msgn)
 				default:
@@ -123,6 +125,7 @@ func TestNodeStepUnblock(t *testing.T) {
 }
 
 // TestNodePropose ensures that node.Propose sends the given proposal to the underlying raft.
+// TestNodePropose确保node.Propose发送给定的proposal到底层的raft
 func TestNodePropose(t *testing.T) {
 	msgs := []raftpb.Message{}
 	appendStep := func(r *raft, m raftpb.Message) error {
@@ -142,6 +145,7 @@ func TestNodePropose(t *testing.T) {
 		rd := <-n.Ready()
 		s.Append(rd.Entries)
 		// change the step function to appendStep until this raft becomes leader
+		// 变更stop函数为appendStep直到raft变为leader
 		if rd.SoftState.Lead == r.id {
 			r.step = appendStep
 			n.Advance()

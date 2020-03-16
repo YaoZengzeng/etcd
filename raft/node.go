@@ -37,6 +37,8 @@ var (
 
 // SoftState provides state that is useful for logging and debugging.
 // The state is volatile and does not need to be persisted to the WAL.
+// SoftState提供了在logging以及debugging时有用的状态
+// 这些状态是易变的并且不会持久化到WAL中
 type SoftState struct {
 	Lead      uint64 // must use atomic operations to access; keep 64-bit aligned.
 	RaftState StateType
@@ -60,17 +62,20 @@ type Ready struct {
 
 	// The current state of a Node to be saved to stable storage BEFORE
 	// Messages are sent.
+	// 当前Node的状态，需要在发送前被保存到stable storage
 	// HardState will be equal to empty state if there is no update.
 	pb.HardState
 
 	// ReadStates can be used for node to serve linearizable read requests locally
 	// when its applied index is greater than the index in ReadState.
+	// 当applied index大于ReadState中的index，ReadStates可以本地就服务linearizable read requests
 	// Note that the readState will be returned when raft receives msgReadIndex.
 	// The returned is only valid for the request that requested to read.
 	ReadStates []ReadState
 
 	// Entries specifies entries to be saved to stable storage BEFORE
 	// Messages are sent.
+	// Entries是在Message被发送前被存储到stable storage的entries
 	Entries []pb.Entry
 
 	// Snapshot specifies the snapshot to be saved to stable storage.
@@ -85,6 +90,7 @@ type Ready struct {
 
 	// Messages specifies outbound messages to be sent AFTER Entries are
 	// committed to stable storage.
+	// Messages指定Entries被提交到stable storage之后的outbound messages
 	// If it contains a MsgSnap message, the application MUST report back to raft
 	// when the snapshot has been received or has failed by calling ReportSnapshot.
 	Messages []pb.Message
@@ -132,8 +138,10 @@ func (rd Ready) appliedCursor() uint64 {
 type Node interface {
 	// Tick increments the internal logical clock for the Node by a single tick. Election
 	// timeouts and heartbeat timeouts are in units of ticks.
+	// Tick为Node内部的逻辑时钟增加一个tick，Election timeouts以及Heartbeat timeouts都以ticks为单位
 	Tick()
 	// Campaign causes the Node to transition to candidate state and start campaigning to become leader.
+	// Campaign将Node转移到candidate state并且启动campaigning来竞争成为leader
 	Campaign(ctx context.Context) error
 	// Propose proposes that data be appended to the log. Note that proposals can be lost without
 	// notice, therefore it is user's job to ensure proposal retries.
@@ -145,6 +153,8 @@ type Node interface {
 	// returned. In particular, configuration changes are dropped unless the
 	// leader has certainty that there is no prior unapplied configuration
 	// change in its log.
+	// ProposeConfChange提交一个configuration change，像任何的proposal，配置的变更可能会
+	// 被丢弃，有或者没有错误返回，特别地，配置变更会被丢弃，除非leader确认之前在log中没有unapplied configuration
 	//
 	// The method accepts either a pb.ConfChange (deprecated) or pb.ConfChangeV2
 	// message. The latter allows arbitrary configuration changes via joint
@@ -170,14 +180,18 @@ type Node interface {
 
 	// Advance notifies the Node that the application has saved progress up to the last Ready.
 	// It prepares the node to return the next available Ready.
-	// Advance通知Node，application已经推进到上一个Ready，它准备让node返回下一个可用的Ready
+	// Advance通知Node，application已经推进到最新一个Ready，它准备让node返回下一个可用的Ready
 	//
 	// The application should generally call Advance after it applies the entries in last Ready.
+	// 应用应该调用Advance在它应用最新的Ready的entries之后
 	//
 	// However, as an optimization, the application may call Advance while it is applying the
 	// commands. For example. when the last Ready contains a snapshot, the application might take
 	// a long time to apply the snapshot data. To continue receiving Ready without blocking raft
 	// progress, it can call Advance before finishing applying the last ready.
+	// 但是作为一个优化，应用可能调用Advance在它正在applying the command的时候，比如，上一个Ready中包含
+	// 一个snapshot，应用可能花费很长时间来应用snapshot，为了持续接收Ready而不会阻塞raft进程，它会在结束
+	// last ready之前调用Advance
 	Advance()
 	// ApplyConfChange applies a config change (previously passed to
 	// ProposeConfChange) to the node. This must be called whenever a config
@@ -188,6 +202,7 @@ type Node interface {
 	ApplyConfChange(cc pb.ConfChangeI) *pb.ConfState
 
 	// TransferLeadership attempts to transfer leadership to the given transferee.
+	// TransferLeadership试着将Leadership转让到给定的transferee
 	TransferLeadership(ctx context.Context, lead, transferee uint64)
 
 	// ReadIndex request a read state. The read state will be set in the ready.
@@ -230,6 +245,7 @@ func StartNode(c *Config, peers []Peer) Node {
 	if len(peers) == 0 {
 		panic("no peers given; use RestartNode instead")
 	}
+	// 创建新的Raw Node
 	rn, err := NewRawNode(c)
 	if err != nil {
 		panic(err)
@@ -243,9 +259,13 @@ func StartNode(c *Config, peers []Peer) Node {
 }
 
 // RestartNode is similar to StartNode but does not take a list of peers.
+// RestartNode和StartNode类似，但是没有以一系列的peers作为参数
 // The current membership of the cluster will be restored from the Storage.
+// 当前cluster的membership将从Storage中恢复
 // If the caller has an existing state machine, pass in the last log index that
 // has been applied to it; otherwise use zero.
+// 如果cluster已经有一个已经存在的state machine，传入已经被applied的last log index
+// 否则使用0
 func RestartNode(c *Config) Node {
 	rn, err := NewRawNode(c)
 	if err != nil {
@@ -415,6 +435,7 @@ func (n *node) run() {
 
 // Tick increments the internal logical clock for this Node. Election timeouts
 // and heartbeat timeouts are in units of ticks.
+// Tick为这个Node增加内部的逻辑时钟，Election timeouts以及heartbeat timeouts都以这个ticks为单位
 func (n *node) Tick() {
 	select {
 	case n.tickc <- struct{}{}:
@@ -469,6 +490,7 @@ func (n *node) stepWait(ctx context.Context, m pb.Message) error {
 func (n *node) stepWithWaitOption(ctx context.Context, m pb.Message, wait bool) error {
 	if m.Type != pb.MsgProp {
 		select {
+		// 不是MsgProp讲message发送给recvc
 		case n.recvc <- m:
 			return nil
 		case <-ctx.Done():
@@ -591,11 +613,14 @@ func newReady(r *raft, prevSoftSt *SoftState, prevHardSt pb.HardState) Ready {
 
 // MustSync returns true if the hard state and count of Raft entries indicate
 // that a synchronous write to persistent storage is required.
+// MustSync返回true，如果hard state以及Raft entries的数目表明一个写入到持久化存储的
+// synchronous write是必要的
 func MustSync(st, prevst pb.HardState, entsnum int) bool {
 	// Persistent state on all servers:
 	// (Updated on stable storage before responding to RPCs)
 	// currentTerm
 	// votedFor
 	// log entries[]
+	// 有新的log写入或者Vote或者Term发生变更，才需要同步写
 	return entsnum != 0 || st.Vote != prevst.Vote || st.Term != prevst.Term
 }

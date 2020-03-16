@@ -70,9 +70,11 @@ func (h *httpKVAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// 写入一个配置变更的请求，加入一个Node
 		cc := raftpb.ConfChange{
 			Type:    raftpb.ConfChangeAddNode,
 			NodeID:  nodeId,
+			// Context是url的内容
 			Context: url,
 		}
 		h.confChangeC <- cc

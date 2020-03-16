@@ -31,10 +31,12 @@ type raftLog struct {
 
 	// committed is the highest log position that is known to be in
 	// stable storage on a quorum of nodes.
+	// committed是最高的log position，已知处于quorum of nodes的stable storage
 	committed uint64
 	// applied is the highest log position that the application has
 	// been instructed to apply to its state machine.
 	// Invariant: applied <= committed
+	// applied是最高的log position，应用被加入到它的state machine
 	applied uint64
 
 	logger Logger
@@ -53,6 +55,7 @@ func newLog(storage Storage, logger Logger) *raftLog {
 
 // newLogWithSize returns a log using the given storage and max
 // message size.
+// newLogWithSize用给定的storage以及max message size返回一个log
 func newLogWithSize(storage Storage, logger Logger, maxNextEntsSize uint64) *raftLog {
 	if storage == nil {
 		log.Panic("storage must not be nil")
@@ -73,6 +76,7 @@ func newLogWithSize(storage Storage, logger Logger, maxNextEntsSize uint64) *raf
 	log.unstable.offset = lastIndex + 1
 	log.unstable.logger = logger
 	// Initialize our committed and applied pointers to the time of the last compaction.
+	// 初始化我们的committed以及applied pointers到上一次last compaction的值
 	log.committed = firstIndex - 1
 	log.applied = firstIndex - 1
 

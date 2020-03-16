@@ -49,6 +49,7 @@ const (
 
 var (
 	// SegmentSizeBytes is the preallocated size of each wal segment file.
+	// SegmentSizeBytes是提前申请的每个wal segment file的大小
 	// The actual size might be larger than this. In general, the default
 	// value should be used, but this is defined as an exported variable
 	// so that tests can set a different segment size.
@@ -414,8 +415,10 @@ func openWALFiles(lg *zap.Logger, dirpath string, names []string, nameIndex int,
 }
 
 // ReadAll reads out records of the current WAL.
+// ReadAll从当前的WAL中读取出records
 // If opened in write mode, it must read out all records until EOF. Or an error
 // will be returned.
+// 如果处于write mode，则它必须读取出所有的records直到EOF，否则会返回错误
 // If opened in read mode, it will try to read all records if possible.
 // If it cannot read out the expected snap, it will return ErrSnapshotNotFound.
 // If loaded snap doesn't match with the expected one, it will return
@@ -831,6 +834,7 @@ func (w *WAL) Save(st raftpb.HardState, ents []raftpb.Entry) error {
 
 	// short cut, do not call sync
 	if raft.IsEmptyHardState(st) && len(ents) == 0 {
+		// 如果没有内容，则返回nil，无需操作
 		return nil
 	}
 

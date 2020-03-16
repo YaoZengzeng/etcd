@@ -4318,6 +4318,7 @@ func newTestLearnerRaft(id uint64, peers []uint64, learners []uint64, election, 
 
 // newTestRawNode sets up a RawNode with the given peers. The configuration will
 // not be reflected in the Storage.
+// newTestRawNode用给定的peers创建一个RawNode，配置不会反映到Storage里
 func newTestRawNode(id uint64, peers []uint64, election, heartbeat int, storage Storage) *RawNode {
 	cfg := newTestConfig(id, peers, election, heartbeat, storage)
 	rn, err := NewRawNode(cfg)

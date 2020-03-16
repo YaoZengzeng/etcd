@@ -32,6 +32,7 @@ import (
 )
 
 // None is a placeholder node ID used when there is no leader.
+// None是在没有leader的时候使用的placeholder node ID
 const None uint64 = 0
 const noLimit = math.MaxUint64
 
@@ -152,6 +153,9 @@ type Config struct {
 	// raft. raft will not return entries to the application smaller or equal to
 	// Applied. If Applied is unset when restarting, raft might return previous
 	// applied entries. This is a very application dependent configuration.
+	// Applied是最后一个applied的index，它应该在重启raft的时候被设置，raft不会返回给应用小于等于
+	// Applied的entries，如果Applied在重启的时候没有设置，raft可能返回之前已经applied的entries
+	// 这个是一个和应用相关的配置
 	Applied uint64
 
 	// MaxSizePerMsg limits the max byte size of each append message. Smaller
@@ -288,6 +292,7 @@ type raft struct {
 	// configuration change (if any). Config changes are only allowed to
 	// be proposed if the leader's applied index is greater than this
 	// value.
+	// 只有一个conf change可能处于pending状态在一个时刻
 	pendingConfIndex uint64
 	// an estimate of the size of the uncommitted tail of the Raft log. Used to
 	// prevent unbounded log growth. Only maintained by the leader. Reset on
@@ -383,6 +388,7 @@ func newRaft(c *Config) *raft {
 		nodesStrs = append(nodesStrs, fmt.Sprintf("%x", n))
 	}
 
+	// 新的raft实例启动
 	r.logger.Infof("newRaft %x [peers: [%s], term: %d, commit: %d, applied: %d, lastindex: %d, lastterm: %d]",
 		r.id, strings.Join(nodesStrs, ","), r.Term, r.raftLog.committed, r.raftLog.applied, r.raftLog.lastIndex(), r.raftLog.lastTerm())
 	return r

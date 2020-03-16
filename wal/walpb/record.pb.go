@@ -37,6 +37,7 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type Record struct {
+	// Record为wal里面的一条记录
 	Type             int64  `protobuf:"varint,1,opt,name=type" json:"type"`
 	Crc              uint32 `protobuf:"varint,2,opt,name=crc" json:"crc"`
 	Data             []byte `protobuf:"bytes,3,opt,name=data" json:"data,omitempty"`

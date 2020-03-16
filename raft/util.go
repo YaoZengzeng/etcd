@@ -41,6 +41,7 @@ func max(a, b uint64) uint64 {
 }
 
 func IsLocalMsg(msgt pb.MessageType) bool {
+	// MsgHup, MsgBeat，MsgUnreachable，MsgSnapStatus以及MsgCheckQuorum为本地的Message
 	return msgt == pb.MsgHup || msgt == pb.MsgBeat || msgt == pb.MsgUnreachable ||
 		msgt == pb.MsgSnapStatus || msgt == pb.MsgCheckQuorum
 }

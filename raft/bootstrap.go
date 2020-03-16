@@ -23,6 +23,8 @@ import (
 // Bootstrap initializes the RawNode for first use by appending configuration
 // changes for the supplied peers. This method returns an error if the Storage
 // is nonempty.
+// Bootstrap通过增加configuration changes到supplied peers来初始化RawNode，如果Storage
+// 不为空，返回错误
 //
 // It is recommended that instead of calling this method, applications bootstrap
 // their state manually by setting up a Storage that has a first index > 1 and
@@ -58,6 +60,7 @@ func (rn *RawNode) Bootstrap(peers []Peer) error {
 
 		ents[i] = pb.Entry{Type: pb.EntryConfChange, Term: 1, Index: uint64(i + 1), Data: data}
 	}
+	// 将各个peers的加入作为Entry放入raftLog
 	rn.raft.raftLog.append(ents...)
 
 	// Now apply them, mainly so that the application can call Campaign

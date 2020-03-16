@@ -50,8 +50,11 @@ type Transporter interface {
 	// Handler returns the HTTP handler of the transporter.
 	// A transporter HTTP handler handles the HTTP requests
 	// from remote peers.
+	// Handler返回transporter的HTTP handler，一个transport HTTP handler
+	// 处理来自remote peers的请求
 	// The handler MUST be used to handle RaftPrefix(/raft)
 	// endpoint.
+	// handler必须用来处理以RaftPrefix(/raft)为前缀的请求
 	Handler() http.Handler
 	// Send sends out the given messages to the remote peers.
 	// Each message has a To field, which is an id that maps
@@ -65,8 +68,10 @@ type Transporter interface {
 	// The behavior of SendSnapshot is similar to Send.
 	SendSnapshot(m snap.Message)
 	// AddRemote adds a remote with given peer urls into the transport.
+	// AddRemote用给定的peer urls加入transport
 	// A remote helps newly joined member to catch up the progress of cluster,
 	// and will not be used after that.
+	// remote用来帮助新加入的member
 	// It is the caller's responsibility to ensure the urls are all valid,
 	// or it panics.
 	AddRemote(id types.ID, urls []string)

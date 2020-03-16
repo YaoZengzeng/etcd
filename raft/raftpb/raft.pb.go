@@ -43,9 +43,11 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+// Entry的类型
 type EntryType int32
 
 const (
+	// 分为Normal，ConfChange以及ConfChangeV2
 	EntryNormal       EntryType = 0
 	EntryConfChange   EntryType = 1
 	EntryConfChangeV2 EntryType = 2
@@ -83,14 +85,19 @@ func (EntryType) EnumDescriptor() ([]byte, []int) { return fileDescriptorRaft, [
 type MessageType int32
 
 const (
+	// 所有类型的Message都放入一个结构体里面，用MessageType进行区分
+	// 不用于节点间通信，仅用于发送给本节点让节点进行选举
 	MsgHup            MessageType = 0
+	// 不用于节点间通信，仅用于leader节点在heartbeat定时器到期时向集群其他节点发送心跳
 	MsgBeat           MessageType = 1
+	// raft库的使用者提交数据，candidate忽略，follower在有leader的时候转发，
 	MsgProp           MessageType = 2
 	MsgApp            MessageType = 3
 	MsgAppResp        MessageType = 4
 	MsgVote           MessageType = 5
 	MsgVoteResp       MessageType = 6
 	MsgSnap           MessageType = 7
+	// 心跳
 	MsgHeartbeat      MessageType = 8
 	MsgHeartbeatResp  MessageType = 9
 	MsgUnreachable    MessageType = 10
@@ -100,6 +107,7 @@ const (
 	MsgTimeoutNow     MessageType = 14
 	MsgReadIndex      MessageType = 15
 	MsgReadIndexResp  MessageType = 16
+	// Request Vote
 	MsgPreVote        MessageType = 17
 	MsgPreVoteResp    MessageType = 18
 )
@@ -258,6 +266,7 @@ func (x *ConfChangeType) UnmarshalJSON(data []byte) error {
 func (ConfChangeType) EnumDescriptor() ([]byte, []int) { return fileDescriptorRaft, []int{3} }
 
 type Entry struct {
+	// 这个log entry的Term, Index, 类型以及数据
 	Term             uint64    `protobuf:"varint,2,opt,name=Term" json:"Term"`
 	Index            uint64    `protobuf:"varint,3,opt,name=Index" json:"Index"`
 	Type             EntryType `protobuf:"varint,1,opt,name=Type,enum=raftpb.EntryType" json:"Type"`
@@ -315,6 +324,7 @@ func (*Message) ProtoMessage()               {}
 func (*Message) Descriptor() ([]byte, []int) { return fileDescriptorRaft, []int{3} }
 
 type HardState struct {
+	// Term，Vote以及Commit是Hard State，必须保存
 	Term             uint64 `protobuf:"varint,1,opt,name=term" json:"term"`
 	Vote             uint64 `protobuf:"varint,2,opt,name=vote" json:"vote"`
 	Commit           uint64 `protobuf:"varint,3,opt,name=commit" json:"commit"`

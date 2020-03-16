@@ -80,6 +80,7 @@ func (s *kvstore) readCommits(commitC <-chan *string, errorC <-chan error) {
 				log.Panic(err)
 			}
 			log.Printf("loading snapshot at term %d and index %d", snapshot.Metadata.Term, snapshot.Metadata.Index)
+			// 从某个term以及index开始恢复
 			if err := s.recoverFromSnapshot(snapshot.Data); err != nil {
 				log.Panic(err)
 			}
@@ -93,6 +94,7 @@ func (s *kvstore) readCommits(commitC <-chan *string, errorC <-chan error) {
 			log.Fatalf("raftexample: could not decode message (%v)", err)
 		}
 		s.mu.Lock()
+		// 将数据重放到
 		s.kvStore[dataKv.Key] = dataKv.Val
 		s.mu.Unlock()
 	}
@@ -115,6 +117,7 @@ func (s *kvstore) recoverFromSnapshot(snapshot []byte) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// 直接将snapshot恢复到kvstore中
 	s.kvStore = store
 	return nil
 }

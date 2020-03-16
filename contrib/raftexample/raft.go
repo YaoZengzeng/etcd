@@ -249,11 +249,14 @@ func (rc *raftNode) replayWAL() *wal.WAL {
 	rc.raftStorage.SetHardState(st)
 
 	// append to storage so raft starts at the right place in log
+	// 扩展storage，这样raft就能从log的正确位置启动
 	rc.raftStorage.Append(ents)
 	// send nil once lastIndex is published so client knows commit channel is current
+	// 发送nil，一旦lastIndex已经published，这样client直到commit channel为current
 	if len(ents) > 0 {
 		rc.lastIndex = ents[len(ents)-1].Index
 	} else {
+		// snapshot已经加载完成
 		rc.commitC <- nil
 	}
 	return w
@@ -282,6 +285,7 @@ func (rc *raftNode) startRaft() {
 
 	rpeers := make([]raft.Peer, len(rc.peers))
 	for i := range rpeers {
+		// 构建peers
 		rpeers[i] = raft.Peer{ID: uint64(i + 1)}
 	}
 	c := &raft.Config{
@@ -362,6 +366,7 @@ func (rc *raftNode) publishSnapshot(snapshotToSave raftpb.Snapshot) {
 var snapshotCatchUpEntriesN uint64 = 10000
 
 func (rc *raftNode) maybeTriggerSnapshot() {
+	// 根据index来确定是否需要进行snapshot
 	if rc.appliedIndex-rc.snapshotIndex <= rc.snapCount {
 		return
 	}
@@ -412,6 +417,7 @@ func (rc *raftNode) serveChannels() {
 
 		for rc.proposeC != nil && rc.confChangeC != nil {
 			select {
+			// 接收proposal
 			case prop, ok := <-rc.proposeC:
 				if !ok {
 					rc.proposeC = nil
@@ -446,6 +452,7 @@ func (rc *raftNode) serveChannels() {
 		// store raft entries to wal, then publish over commit channel
 		// 将raft entries存入wal中，之后再通过commit channel进行发送
 		case rd := <-rc.node.Ready():
+			// 将HardState以及Entries写入Wal中
 			rc.wal.Save(rd.HardState, rd.Entries)
 			if !raft.IsEmptySnap(rd.Snapshot) {
 				rc.saveSnap(rd.Snapshot)
@@ -459,6 +466,7 @@ func (rc *raftNode) serveChannels() {
 				rc.stop()
 				return
 			}
+			// 可能会触发snapshot
 			rc.maybeTriggerSnapshot()
 			rc.node.Advance()
 
