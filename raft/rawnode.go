@@ -83,6 +83,7 @@ func (rn *RawNode) Campaign() error {
 }
 
 // Propose proposes data be appended to the raft log.
+// Propose提交append到raft log的数据
 func (rn *RawNode) Propose(data []byte) error {
 	return rn.raft.Step(pb.Message{
 		Type: pb.MsgProp,
@@ -103,6 +104,7 @@ func (rn *RawNode) ProposeConfChange(cc pb.ConfChangeI) error {
 }
 
 // ApplyConfChange applies a config change to the local node.
+// ApplyConfChange应用配置变更到local node
 func (rn *RawNode) ApplyConfChange(cc pb.ConfChangeI) *pb.ConfState {
 	cs := rn.raft.applyConfChange(cc.AsV2())
 	return &cs
@@ -124,6 +126,8 @@ func (rn *RawNode) Step(m pb.Message) error {
 // includes appending and applying entries or a snapshot, updating the HardState,
 // and sending messages. The returned Ready() *must* be handled and subsequently
 // passed back via Advance().
+// Ready返回应用需要处理的outstanding work，包括appending一级applying entries或者snapshot
+// 更新HardState以及发送messages，返回的Ready()必须被处理并且之后通过Advance()返回
 func (rn *RawNode) Ready() Ready {
 	rd := rn.readyWithoutAccept()
 	rn.acceptReady(rd)
@@ -132,6 +136,7 @@ func (rn *RawNode) Ready() Ready {
 
 // readyWithoutAccept returns a Ready. This is a read-only operation, i.e. there
 // is no obligation that the Ready must be handled.
+// readyWithoutAccept返回一个Ready结构体，这是一个只读的操作，Ready不是必须被处理的
 func (rn *RawNode) readyWithoutAccept() Ready {
 	return newReady(rn.raft, rn.prevSoftSt, rn.prevHardSt)
 }
@@ -142,6 +147,7 @@ func (rn *RawNode) readyWithoutAccept() Ready {
 // acceptReady会在RawNode的consumer已经决定前进并且处理了一个Ready之后被调用
 // 在这个调用和之前对于Ready()的调用，不会改变RawNode的state
 func (rn *RawNode) acceptReady(rd Ready) {
+	// 变更RawNode的prevSoftSt并且清空raft的readStates和msgs
 	if rd.SoftState != nil {
 		rn.prevSoftSt = rd.SoftState
 	}
@@ -152,9 +158,11 @@ func (rn *RawNode) acceptReady(rd Ready) {
 }
 
 // HasReady called when RawNode user need to check if any Ready pending.
+// 当RawNode的用户需要检测是否有任何的Ready处于pending状态就会调用HasReady
 // Checking logic in this method should be consistent with Ready.containsUpdates().
 func (rn *RawNode) HasReady() bool {
 	r := rn.raft
+	// 如果软状态发送变更
 	if !r.softState().equal(rn.prevSoftSt) {
 		return true
 	}

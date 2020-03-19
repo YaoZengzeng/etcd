@@ -841,11 +841,13 @@ func (w *WAL) Save(st raftpb.HardState, ents []raftpb.Entry) error {
 	mustSync := raft.MustSync(st, w.state, len(ents))
 
 	// TODO(xiangli): no more reference operator
+	// 首先把entries写入，即使中途写失败了，因为State没有写入
 	for i := range ents {
 		if err := w.saveEntry(&ents[i]); err != nil {
 			return err
 		}
 	}
+	// 首先写入State
 	if err := w.saveState(&st); err != nil {
 		return err
 	}

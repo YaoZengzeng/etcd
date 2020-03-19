@@ -130,6 +130,7 @@ func (rc *raftNode) saveSnap(snap raftpb.Snapshot) error {
 	return rc.wal.ReleaseLockTo(snap.Metadata.Index)
 }
 
+// 需要筛选出的进行Apply的Entries
 func (rc *raftNode) entriesToApply(ents []raftpb.Entry) (nents []raftpb.Entry) {
 	if len(ents) == 0 {
 		return ents
@@ -186,6 +187,7 @@ func (rc *raftNode) publishEntries(ents []raftpb.Entry) bool {
 		rc.appliedIndex = ents[i].Index
 
 		// special nil commit to signal replay has finished
+		// 发送一个nil commit说明replay已经结束了
 		if ents[i].Index == rc.lastIndex {
 			select {
 			case rc.commitC <- nil:
@@ -244,6 +246,7 @@ func (rc *raftNode) replayWAL() *wal.WAL {
 	}
 	rc.raftStorage = raft.NewMemoryStorage()
 	if snapshot != nil {
+		// 应用snapshot，如果有的话
 		rc.raftStorage.ApplySnapshot(*snapshot)
 	}
 	rc.raftStorage.SetHardState(st)
@@ -254,6 +257,7 @@ func (rc *raftNode) replayWAL() *wal.WAL {
 	// send nil once lastIndex is published so client knows commit channel is current
 	// 发送nil，一旦lastIndex已经published，这样client直到commit channel为current
 	if len(ents) > 0 {
+		// 设置lastIndex
 		rc.lastIndex = ents[len(ents)-1].Index
 	} else {
 		// snapshot已经加载完成
@@ -281,6 +285,7 @@ func (rc *raftNode) startRaft() {
 
 	// 如果wal存在的话，重放wal
 	oldwal := wal.Exist(rc.waldir)
+	// replay的WAL都放到了Storage里面
 	rc.wal = rc.replayWAL()
 
 	rpeers := make([]raft.Peer, len(rc.peers))
@@ -314,6 +319,7 @@ func (rc *raftNode) startRaft() {
 		Logger:      zap.NewExample(),
 		ID:          types.ID(rc.id),
 		ClusterID:   0x1000,
+		// 将Raft实例传入
 		Raft:        rc,
 		ServerStats: stats.NewServerStats("", ""),
 		LeaderStats: stats.NewLeaderStats(strconv.Itoa(rc.id)),
@@ -323,6 +329,7 @@ func (rc *raftNode) startRaft() {
 	rc.transport.Start()
 	for i := range rc.peers {
 		if i+1 != rc.id {
+			// 将peer加入网络
 			rc.transport.AddPeer(types.ID(i+1), []string{rc.peers[i]})
 		}
 	}
@@ -446,6 +453,7 @@ func (rc *raftNode) serveChannels() {
 	// raft状态机更新的事件循环
 	for {
 		select {
+		// 在raftexample里就是每隔100ms调用一次node.Tick触发逻辑时钟
 		case <-ticker.C:
 			rc.node.Tick()
 
@@ -461,6 +469,7 @@ func (rc *raftNode) serveChannels() {
 			}
 			// 对raft storage进行append
 			rc.raftStorage.Append(rd.Entries)
+			// 通过transport将message发送出去
 			rc.transport.Send(rd.Messages)
 			if ok := rc.publishEntries(rc.entriesToApply(rd.CommittedEntries)); !ok {
 				rc.stop()
@@ -502,6 +511,7 @@ func (rc *raftNode) serveRaft() {
 }
 
 func (rc *raftNode) Process(ctx context.Context, m raftpb.Message) error {
+	// Process用于处理接收到的raft message
 	return rc.node.Step(ctx, m)
 }
 func (rc *raftNode) IsIDRemoved(id uint64) bool                           { return false }

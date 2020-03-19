@@ -114,6 +114,8 @@ func (c *Config) Clone() Config {
 // ProgressTracker tracks the currently active configuration and the information
 // known about the nodes and learners in it. In particular, it tracks the match
 // index for each peer which in turn allows reasoning about the committed index.
+// ProgressTracker追踪当前的active configuration和其中的nodes以及learners的配置，特别地
+// 它为每个peer追踪index，从而能够知道committed index
 type ProgressTracker struct {
 	Config
 
@@ -249,6 +251,7 @@ func (p *ProgressTracker) LearnerNodes() []uint64 {
 }
 
 // ResetVotes prepares for a new round of vote counting via recordVote.
+// ResetVotes通过recordVote准备新一轮的vote counting
 func (p *ProgressTracker) ResetVotes() {
 	p.Votes = map[uint64]bool{}
 }

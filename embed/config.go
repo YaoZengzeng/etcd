@@ -127,6 +127,7 @@ type Config struct {
 	// We expect the follower has a millisecond level latency with the leader.
 	// The max throughput is around 10K. Keep a 5K entries is enough for helping
 	// follower to catch up.
+	// 最大的吞吐量为10K，保持5K的entries对于帮助follower catch up已经足够了
 	// WARNING: only change this for tests.
 	// Always use "DefaultSnapshotCatchUpEntries"
 	SnapshotCatchUpEntries uint64
@@ -223,9 +224,12 @@ type Config struct {
 	GRPCKeepAliveTimeout time.Duration `json:"grpc-keepalive-timeout"`
 
 	// PreVote is true to enable Raft Pre-Vote.
+	// PreVote为true则使能Raft的Pre-Vote
 	// If enabled, Raft runs an additional election phase
 	// to check whether it would get enough votes to win
 	// an election, thus minimizing disruptions.
+	// 如果enabled，则Raft会运行一个额外的election phase来检查是否会得到足够的选票
+	// 来赢得选举，因此最小化disruptions的可能
 	// TODO: enable by default in 3.5.
 	PreVote bool `json:"pre-vote"`
 

@@ -164,6 +164,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 		return e, err
 	}
 
+	// 解析后端的FreeList的类型
 	backendFreelistType := parseBackendFreelistType(cfg.ExperimentalBackendFreelistType)
 
 	srvcfg := etcdserver.ServerConfig{
@@ -213,6 +214,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 		CompactionBatchLimit:       cfg.ExperimentalCompactionBatchLimit,
 	}
 	print(e.cfg.logger, *cfg, srvcfg, memberInitialized)
+	// 创建etcd server
 	if e.Server, err = etcdserver.NewServer(srvcfg); err != nil {
 		return e, err
 	}
@@ -223,6 +225,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 
 	// newly started member ("memberInitialized==false")
 	// does not need corruption check
+	// 新启动的member不需要corruption check
 	if memberInitialized {
 		if err = e.Server.CheckInitialHashKV(); err != nil {
 			// set "EtcdServer" to nil, so that it does not block on "EtcdServer.Close()"

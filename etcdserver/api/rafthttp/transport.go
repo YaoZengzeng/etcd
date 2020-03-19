@@ -76,6 +76,7 @@ type Transporter interface {
 	// or it panics.
 	AddRemote(id types.ID, urls []string)
 	// AddPeer adds a peer with given peer urls into the transport.
+	// AddPeer将给定的peer urls加入到transport
 	// It is the caller's responsibility to ensure the urls are all valid,
 	// or it panics.
 	// Peer urls are used to connect to the remote peer.
@@ -120,6 +121,7 @@ type Transport struct {
 	ID          types.ID   // local member ID
 	URLs        types.URLs // local peer URLs
 	ClusterID   types.ID   // raft cluster ID for request validation
+	// raft状态机，用于转发接收到的messages并且报告状态
 	Raft        Raft       // raft state machine, to which the Transport forwards received messages and reports status
 	Snapshotter *snap.Snapshotter
 	ServerStats *stats.ServerStats // used to record general transportation statistics
@@ -136,6 +138,7 @@ type Transport struct {
 	pipelineRt http.RoundTripper // roundTripper used by pipelines
 
 	mu      sync.RWMutex         // protect the remote and peer map
+	// remotes帮助新加入的member catch up
 	remotes map[types.ID]*remote // remotes map that helps newly joined member to catch up
 	peers   map[types.ID]Peer    // peers map
 

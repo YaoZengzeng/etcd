@@ -333,6 +333,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 			plog.Fatalf("create snapshot directory error: %v", err)
 		}
 	}
+	// ss是一个snapshotter
 	ss := snap.New(cfg.Logger, cfg.SnapDir())
 
 	bepath := cfg.backendPath()
@@ -514,6 +515,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 		errorc:      make(chan error, 1),
 		v2store:     st,
 		snapshotter: ss,
+		// 创建RaftNode
 		r: *newRaftNode(
 			raftNodeConfig{
 				lg:          cfg.Logger,
@@ -882,6 +884,7 @@ func (s *EtcdServer) RaftHandler() http.Handler { return s.r.transport.Handler()
 
 // Process takes a raft message and applies it to the server's raft state
 // machine, respecting any timeout of the given context.
+// Process获取一个raft message并且把它应用到server的raft state machine，服从给定context的timeout
 func (s *EtcdServer) Process(ctx context.Context, m raftpb.Message) error {
 	if s.cluster.IsIDRemoved(types.ID(m.From)) {
 		if lg := s.getLogger(); lg != nil {

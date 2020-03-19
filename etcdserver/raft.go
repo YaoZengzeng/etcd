@@ -40,6 +40,7 @@ import (
 const (
 	// The max throughput of etcd will not exceed 100MB/s (100K * 1KB value).
 	// Assuming the RTT is around 10ms, 1MB max size is large enough.
+	// etcd最大的吞吐量不超过100MB每秒，假设RTT为10ms，则1M大小就足够了
 	maxSizePerMsg = 1 * 1024 * 1024
 	// Never overflow the rafthttp buffer, which is 4096.
 	// TODO: a better const?
@@ -69,7 +70,7 @@ func init() {
 // an apply is consumed, the entries will be persisted to
 // to raft storage concurrently; the application must read
 // raftDone before assuming the raft messages are stable.
-// apply包含了要apply的entries, snapshot，一旦apply被消费，entries会并行地
+// apply包含了要apply的entries, snapshot，一旦apply被消费，entries会同时
 // 持久化到raft storage中，application必须读取raftDone在确认raft message稳定之前
 type apply struct {
 	entries  []raftpb.Entry
@@ -240,6 +241,7 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 				}
 
 				// gofail: var raftBeforeSave struct{}
+				// 将HardState和log entries写入Storage
 				if err := r.storage.Save(rd.HardState, rd.Entries); err != nil {
 					if r.lg != nil {
 						r.lg.Fatal("failed to save Raft hard state and entries", zap.Error(err))
@@ -316,6 +318,7 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 					notifyc <- struct{}{}
 				}
 
+				// 调用Advance()表明已经处理完成
 				r.Advance()
 			case <-r.stopped:
 				return
@@ -425,6 +428,10 @@ func (r *raftNode) resumeSending() {
 // This can be used for fast-forwarding election
 // ticks in multi data-center deployments, thus
 // speeding up election process.
+// advanceTicks
+// advanceTicks推动Raft节点的刻度
+// 这可以用于在多数据中心部署的时候加速election ticks
+// 因此加速选举的进程
 func (r *raftNode) advanceTicks(ticks int) {
 	for i := 0; i < ticks; i++ {
 		r.tick()
@@ -471,6 +478,7 @@ func startNode(cfg ServerConfig, cl *membership.RaftCluster, ids []types.ID) (id
 	} else {
 		plog.Infof("starting member %s in cluster %s", id, cl.ID())
 	}
+	// 也是用MemoryStorage()作为存储
 	s = raft.NewMemoryStorage()
 	c := &raft.Config{
 		ID:              uint64(id),

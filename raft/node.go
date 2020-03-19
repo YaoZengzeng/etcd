@@ -97,6 +97,7 @@ type Ready struct {
 
 	// MustSync indicates whether the HardState and Entries must be synchronously
 	// written to disk or if an asynchronous write is permissible.
+	// MustSync表明是否HardState和Entries必须同步写入到磁盘或者一个异步的写是允许的
 	MustSync bool
 }
 
@@ -114,6 +115,7 @@ func IsEmptySnap(sp pb.Snapshot) bool {
 	return sp.Metadata.Index == 0
 }
 
+// Ready当中是否包含更新
 func (rd Ready) containsUpdates() bool {
 	return rd.SoftState != nil || !IsEmptyHardState(rd.HardState) ||
 		!IsEmptySnap(rd.Snapshot) || len(rd.Entries) > 0 ||
@@ -282,6 +284,8 @@ type msgWithResult struct {
 }
 
 // node is the canonical implementation of the Node interface
+// node是Node接口的一个实现，并且基于RawNode，所有的方法最后都是交由
+// RawNode的方法去实现
 type node struct {
 	propc      chan msgWithResult
 	recvc      chan pb.Message
@@ -308,6 +312,8 @@ func newNode(rn *RawNode) node {
 		// make tickc a buffered chan, so raft node can buffer some ticks when the node
 		// is busy processing raft messages. Raft node will resume process buffered
 		// ticks when it becomes idle.
+		// ticks是一个有着缓存的channel，因此raft node可以在它处理raft messages的时候缓存一些
+		// ticks，等Raft处于空闲状态的时候Raft node会接着处理缓存的ticks
 		tickc:  make(chan struct{}, 128),
 		done:   make(chan struct{}),
 		stop:   make(chan struct{}),
@@ -334,12 +340,14 @@ func (n *node) run() {
 	var advancec chan struct{}
 	var rd Ready
 
+	// 从node中提取出raft
 	r := n.rn.raft
 
 	lead := None
 
 	for {
 		if advancec != nil {
+			// readyc和advancec同时只能一个有效
 			readyc = nil
 		} else if n.rn.HasReady() {
 			// Populate a Ready. Note that this Ready is not guaranteed to
@@ -350,17 +358,21 @@ func (n *node) run() {
 			// handled first, but it's generally good to emit larger Readys plus
 			// it simplifies testing (by emitting less frequently and more
 			// predictably).
+			// 填充一个Ready对象，需要注意的是这个Ready不一定保证会被处理，我们会装备readyc
+			// 但是不保证真的会发送给它，我们可能发送给另一个channel，loop around并且再次填充Ready
 			rd = n.rn.readyWithoutAccept()
 			readyc = n.readyc
 		}
 
 		if lead != r.lead {
+			// leader可能在运行过程中发生变化
 			if r.hasLeader() {
 				if lead == None {
 					r.logger.Infof("raft.node: %x elected leader %x at term %d", r.id, r.lead, r.Term)
 				} else {
 					r.logger.Infof("raft.node: %x changed leader from %x to %x at term %d", r.id, lead, r.lead, r.Term)
 				}
+				// 当存在leader的时候接收proposal
 				propc = n.propc
 			} else {
 				r.logger.Infof("raft.node: %x lost leader %x at term %d", r.id, lead, r.Term)
@@ -376,13 +388,16 @@ func (n *node) run() {
 		case pm := <-propc:
 			m := pm.m
 			m.From = r.id
+			// 将message交由raft进行处理
 			err := r.Step(m)
 			if pm.result != nil {
+				// 将结果返回至Propose()函数
 				pm.result <- err
 				close(pm.result)
 			}
 		case m := <-n.recvc:
 			// filter out response message from unknown From.
+			// 对于从unknown来的reponse message直接忽略
 			if pr := r.prs.Progress[m.From]; pr != nil || !IsResponseMsg(m.Type) {
 				r.Step(m)
 			}
@@ -416,13 +431,18 @@ func (n *node) run() {
 			case <-n.done:
 			}
 		case <-n.tickc:
+			// 本质上也是定期执行
+			// 调用的RawNode的Tick()函数
 			n.rn.Tick()
 		case readyc <- rd:
 			n.rn.acceptReady(rd)
+			// Ready发送出去之后，设置advancec为n.advancec准备接收response
 			advancec = n.advancec
 		case <-advancec:
 			n.rn.Advance(rd)
+			// 将rd置空
 			rd = Ready{}
+			// 从advancec接收之后，将它设置为nil
 			advancec = nil
 		case c := <-n.status:
 			c <- getStatus(r)
@@ -516,6 +536,7 @@ func (n *node) stepWithWaitOption(ctx context.Context, m pb.Message, wait bool) 
 		return ErrStopped
 	}
 	select {
+	// wait为true的话，等待返回结果
 	case err := <-pm.result:
 		if err != nil {
 			return err
@@ -528,6 +549,7 @@ func (n *node) stepWithWaitOption(ctx context.Context, m pb.Message, wait bool) 
 	return nil
 }
 
+// node会将n.readyc作为参数返回
 func (n *node) Ready() <-chan Ready { return n.readyc }
 
 func (n *node) Advance() {

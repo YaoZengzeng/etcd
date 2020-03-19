@@ -38,6 +38,7 @@ type BackendGetter interface {
 type alarmSet map[types.ID]*pb.AlarmMember
 
 // AlarmStore persists alarms to the backend.
+// AlarmStore将告警持久化到backend中
 type AlarmStore struct {
 	mu    sync.Mutex
 	types map[pb.AlarmType]alarmSet

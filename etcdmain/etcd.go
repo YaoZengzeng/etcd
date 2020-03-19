@@ -53,6 +53,7 @@ var (
 	dirEmpty  = dirType("empty")
 )
 
+// 启动Etcd或者一个Etcd proxy
 func startEtcdOrProxyV2() {
 	grpc.EnableTracing = false
 
@@ -141,8 +142,10 @@ func startEtcdOrProxyV2() {
 		}
 		switch which {
 		case dirMember:
+			// 如果是member则启动Etcd实例
 			stopped, errc, err = startEtcd(&cfg.ec)
 		case dirProxy:
+			// 否则启动Proxy
 			err = startProxy(cfg)
 		default:
 			if lg != nil {
@@ -298,6 +301,7 @@ func startEtcdOrProxyV2() {
 }
 
 // startEtcd runs StartEtcd in addition to hooks needed for standalone etcd.
+// startEtcd运行StartEtcd，以及对于独立的etcd需要的hooks
 func startEtcd(cfg *embed.Config) (<-chan struct{}, <-chan error, error) {
 	e, err := embed.StartEtcd(cfg)
 	if err != nil {
@@ -552,6 +556,7 @@ func startProxy(cfg *config) error {
 
 // identifyDataDirOrDie returns the type of the data dir.
 // Dies if the datadir is invalid.
+// identifyDataDirOrDie返回data dir的类型，如果datadir不合法的话，Die
 func identifyDataDirOrDie(lg *zap.Logger, dir string) dirType {
 	names, err := fileutil.ReadDir(dir)
 	if err != nil {

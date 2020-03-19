@@ -17,13 +17,18 @@ package raft
 import pb "go.etcd.io/etcd/raft/raftpb"
 
 // unstable.entries[i] has raft log position i+unstable.offset.
+// unstable.entries[i]的raft log position为i+unstable.offset
 // Note that unstable.offset may be less than the highest log
 // position in storage; this means that the next write to storage
 // might need to truncate the log before persisting unstable.entries.
+// 需要注意的是unstable.offset可能小于storage中最高的log position
+// 这意味着下一次写入storage可能需要截断log，在持久化unstable.entries之前
 type unstable struct {
+	// snapshot和entries不同时存在
 	// the incoming unstable snapshot, if any.
 	snapshot *pb.Snapshot
 	// all entries that have not yet been written to storage.
+	// 所有未被写入storage的entries
 	entries []pb.Entry
 	offset  uint64
 
@@ -124,6 +129,8 @@ func (u *unstable) truncateAndAppend(ents []pb.Entry) {
 	case after == u.offset+uint64(len(u.entries)):
 		// after is the next index in the u.entries
 		// directly append
+		// 如果新添加的entries的第一个Index刚好是u.entries下一个index
+		// 直接添加
 		u.entries = append(u.entries, ents...)
 	case after <= u.offset:
 		u.logger.Infof("replace the unstable entries from index %d", after)

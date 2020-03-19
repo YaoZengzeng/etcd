@@ -138,6 +138,7 @@ func (h *pipelineHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	receivedBytes.WithLabelValues(types.ID(m.From).String()).Add(float64(len(b)))
 
+	// 调用Raft处理接收到的Message
 	if err := h.r.Process(context.TODO(), m); err != nil {
 		switch v := err.(type) {
 		case writerToResponse:

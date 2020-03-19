@@ -59,6 +59,7 @@ func (s *kvstore) Lookup(key string) (string, bool) {
 
 func (s *kvstore) Propose(k string, v string) {
 	var buf bytes.Buffer
+	// 将kv{}作为一个整体进行提交
 	if err := gob.NewEncoder(&buf).Encode(kv{k, v}); err != nil {
 		log.Fatal(err)
 	}
@@ -67,6 +68,7 @@ func (s *kvstore) Propose(k string, v string) {
 }
 
 func (s *kvstore) readCommits(commitC <-chan *string, errorC <-chan error) {
+	// 从commitC这个channel中
 	for data := range commitC {
 		if data == nil {
 			// done replaying log; new data incoming

@@ -23,10 +23,12 @@ import (
 
 type raftLog struct {
 	// storage contains all stable entries since the last snapshot.
+	// storage包含了上一次snapshot以来所有的stable entries
 	storage Storage
 
 	// unstable contains all unstable entries and snapshot.
 	// they will be saved into storage.
+	// unstable包含了所有unstable entries以及snapshot，他们会被存储到storage
 	unstable unstable
 
 	// committed is the highest log position that is known to be in
@@ -89,6 +91,7 @@ func (l *raftLog) String() string {
 
 // maybeAppend returns (0, false) if the entries cannot be appended. Otherwise,
 // it returns (last index of new entries, true).
+// 返回(0, false)如果entries不能被append，否则返回（新entries的last index，true）
 func (l *raftLog) maybeAppend(index, logTerm, committed uint64, ents ...pb.Entry) (lastnewi uint64, ok bool) {
 	if l.matchTerm(index, logTerm) {
 		lastnewi = index + uint64(len(ents))
@@ -96,14 +99,18 @@ func (l *raftLog) maybeAppend(index, logTerm, committed uint64, ents ...pb.Entry
 		switch {
 		case ci == 0:
 		case ci <= l.committed:
+			// conflict index不可能小于committed index
 			l.logger.Panicf("entry %d conflict with committed entry [committed(%d)]", ci, l.committed)
 		default:
 			offset := index + 1
+			// term相等的话，直接append
 			l.append(ents[ci-offset:]...)
 		}
 		l.commitTo(min(committed, lastnewi))
+		// append成功
 		return lastnewi, true
 	}
+	// 如果term不相等，直接返回
 	return 0, false
 }
 
@@ -114,6 +121,7 @@ func (l *raftLog) append(ents ...pb.Entry) uint64 {
 	if after := ents[0].Index - 1; after < l.committed {
 		l.logger.Panicf("after(%d) is out of range [committed(%d)]", after, l.committed)
 	}
+	// 截取并且append
 	l.unstable.truncateAndAppend(ents)
 	return l.lastIndex()
 }
@@ -166,6 +174,7 @@ func (l *raftLog) nextEnts() (ents []pb.Entry) {
 
 // hasNextEnts returns if there is any available entries for execution. This
 // is a fast check without heavy raftLog.slice() in raftLog.nextEnts().
+// hasNextEnts返回是否有可用的entries用于执行
 func (l *raftLog) hasNextEnts() bool {
 	off := max(l.applied+1, l.firstIndex())
 	return l.committed+1 > off
@@ -202,6 +211,7 @@ func (l *raftLog) lastIndex() uint64 {
 
 func (l *raftLog) commitTo(tocommit uint64) {
 	// never decrease commit
+	// commitIndex从不会变小
 	if l.committed < tocommit {
 		if l.lastIndex() < tocommit {
 			l.logger.Panicf("tocommit(%d) is out of range [lastIndex(%d)]. Was the raft log corrupted, truncated, or lost?", tocommit, l.lastIndex())

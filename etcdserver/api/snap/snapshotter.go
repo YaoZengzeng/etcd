@@ -63,6 +63,7 @@ func New(lg *zap.Logger, dir string) *Snapshotter {
 	}
 }
 
+// Storage的SaveSnap方法的一部分由Snapshotter的SaveSnap实现
 func (s *Snapshotter) SaveSnap(snapshot raftpb.Snapshot) error {
 	if raft.IsEmptySnap(snapshot) {
 		return nil

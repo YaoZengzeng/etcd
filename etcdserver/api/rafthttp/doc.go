@@ -13,4 +13,5 @@
 // limitations under the License.
 
 // Package rafthttp implements HTTP transportation layer for etcd/raft pkg.
+// rafthttp包实现了etcd/raft包的HTTP传输层
 package rafthttp
