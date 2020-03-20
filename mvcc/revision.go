@@ -22,7 +22,9 @@ import "encoding/binary"
 const revBytesLen = 8 + 1 + 8
 
 // A revision indicates modification of the key-value space.
+// 一个revision代表对键值空间的一次修改
 // The set of changes that share same main revision changes the key-value space atomically.
+// 共享同一个main revision的变更对于键值空间是一次原子的变更
 type revision struct {
 	// main is the main revision of a set of changes that happen atomically.
 	main int64

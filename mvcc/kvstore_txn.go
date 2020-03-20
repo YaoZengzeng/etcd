@@ -127,6 +127,7 @@ func (tr *storeTxnRead) rangeKeys(key, end []byte, curRev int64, ro RangeOptions
 		return &RangeResult{KVs: nil, Count: -1, Rev: 0}, ErrCompacted
 	}
 
+	// 从kvindex中找到对应的revision pair
 	revpairs := tr.s.kvindex.Revisions(key, end, rev)
 	tr.trace.Step("range keys from in-memory index tree")
 	if len(revpairs) == 0 {
@@ -245,6 +246,7 @@ func (tw *storeTxnWrite) put(key, value []byte, leaseID lease.LeaseID) {
 		if tw.s.le == nil {
 			panic("no lessor to attach lease")
 		}
+		// 将leaseID和key相关联
 		err = tw.s.le.Attach(leaseID, []lease.LeaseItem{{Key: string(key)}})
 		if err != nil {
 			panic("unexpected error from lease Attach")

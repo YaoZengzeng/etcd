@@ -87,6 +87,7 @@ type raftNode struct {
 	raftNodeConfig
 
 	// a chan to send/receive snapshot
+	// 一个channel用来发送/接收snapshot
 	msgSnapC chan raftpb.Message
 
 	// a chan to send out apply
@@ -110,6 +111,7 @@ type raftNodeConfig struct {
 	// to check if msg receiver is removed from cluster
 	isIDRemoved func(id uint64) bool
 	raft.Node
+	// raftStorage配置在raft node层面
 	raftStorage *raft.MemoryStorage
 	storage     Storage
 	heartbeat   time.Duration // for logging
@@ -143,8 +145,11 @@ func newRaftNode(cfg raftNodeConfig) *raftNode {
 		// set up contention detectors for raft heartbeat message.
 		// expect to send a heartbeat within 2 heartbeat intervals.
 		td:         contention.NewTimeoutDetector(2 * cfg.heartbeat),
+		// 构建read state channel
 		readStateC: make(chan raft.ReadState, 1),
+		// 构建snapshot channel
 		msgSnapC:   make(chan raftpb.Message, maxInFlightMsgSnap),
+		// 构建apply channel
 		applyc:     make(chan apply),
 		stopped:    make(chan struct{}),
 		done:       make(chan struct{}),
@@ -191,6 +196,7 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 						hasLeader.Set(1)
 					}
 
+					// 更新leader
 					rh.updateLead(rd.SoftState.Lead)
 					islead = rd.RaftState == raft.StateLeader
 					if islead {
@@ -226,6 +232,7 @@ func (r *raftNode) start(rh *raftReadyHandler) {
 				updateCommittedIndex(&ap, rh)
 
 				select {
+				// 将apply发送给r.applyc进行处理
 				case r.applyc <- ap:
 				case <-r.stopped:
 					return
@@ -455,6 +462,7 @@ func startNode(cfg ServerConfig, cl *membership.RaftCluster, ids []types.ID) (id
 			plog.Panicf("create wal error: %v", err)
 		}
 	}
+	// 生成peers
 	peers := make([]raft.Peer, len(ids))
 	for i, id := range ids {
 		var ctx []byte

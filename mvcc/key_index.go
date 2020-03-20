@@ -28,11 +28,17 @@ var (
 )
 
 // keyIndex stores the revisions of a key in the backend.
+// keyIndex在后端存储了一个key的revisions
 // Each keyIndex has at least one key generation.
+// 每个keyIndex至少有一个key generation
 // Each generation might have several key versions.
+// 每个generation可能有多个key versions
 // Tombstone on a key appends an tombstone version at the end
 // of the current generation and creates a new empty generation.
+// 一个key的Tombstone会在当前generation的最后加一个tombstone version
+// 并且创建一个新的空的generation
 // Each version of a key has an index pointing to the backend.
+// 每一个版本的key都有着一个索引指向后端
 //
 // For example: put(1.0);put(2.0);tombstone(3.0);put(4.0);tombstone(5.0) on key "foo"
 // generate a keyIndex:
@@ -69,6 +75,7 @@ var (
 //    {empty} -> key SHOULD be removed.
 type keyIndex struct {
 	key         []byte
+	// 上次修改的main revision
 	modified    revision // the main rev of the last modification
 	generations []generation
 }
@@ -356,8 +363,11 @@ func (ki *keyIndex) String() string {
 }
 
 // generation contains multiple revisions of a key.
+// generation包含了一个key的多个revisions
 type generation struct {
+	// 当前generation中放了多少次修改
 	ver     int64
+	// 这个generation创建时的revision
 	created revision // when the generation is created (put in first revision).
 	revs    []revision
 }

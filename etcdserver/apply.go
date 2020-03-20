@@ -188,9 +188,11 @@ func (a *applierV3backend) Put(txn mvcc.TxnWrite, p *pb.PutRequest) (resp *pb.Pu
 		traceutil.Field{Key: "key", Value: string(p.Key)},
 		traceutil.Field{Key: "req_size", Value: proto.Size(p)},
 	)
+	// 从PutRequest中获取key, value, leaseID
 	val, leaseID := p.Value, lease.LeaseID(p.Lease)
 	if txn == nil {
 		if leaseID != lease.NoLease {
+			// 如果有lease的话，首先获取lease
 			if l := a.s.lessor.Lookup(leaseID); l == nil {
 				return nil, nil, lease.ErrLeaseNotFound
 			}

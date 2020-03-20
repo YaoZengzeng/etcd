@@ -117,6 +117,7 @@ func (rc *raftNode) saveSnap(snap raftpb.Snapshot) error {
 	// must save the snapshot index to the WAL before saving the
 	// snapshot to maintain the invariant that we only Open the
 	// wal at previously-saved snapshot indexes.
+	// 必须先把snapshot index存入WAL
 	walSnap := walpb.Snapshot{
 		Index: snap.Metadata.Index,
 		Term:  snap.Metadata.Term,
@@ -140,6 +141,7 @@ func (rc *raftNode) entriesToApply(ents []raftpb.Entry) (nents []raftpb.Entry) {
 		log.Fatalf("first index of committed entry[%d] should <= progress.appliedIndex[%d]+1", firstIdx, rc.appliedIndex)
 	}
 	if rc.appliedIndex-firstIdx+1 < uint64(len(ents)) {
+		// 如果有新的entries需要apply
 		nents = ents[rc.appliedIndex-firstIdx+1:]
 	}
 	return nents
@@ -172,6 +174,7 @@ func (rc *raftNode) publishEntries(ents []raftpb.Entry) bool {
 			switch cc.Type {
 			case raftpb.ConfChangeAddNode:
 				if len(cc.Context) > 0 {
+					// 如果是增加节点的配置变更，将peer加入transport
 					rc.transport.AddPeer(types.ID(cc.NodeID), []string{string(cc.Context)})
 				}
 			case raftpb.ConfChangeRemoveNode:
@@ -184,6 +187,7 @@ func (rc *raftNode) publishEntries(ents []raftpb.Entry) bool {
 		}
 
 		// after commit, update appliedIndex
+		// 在更新之后，更新appliedIndex
 		rc.appliedIndex = ents[i].Index
 
 		// special nil commit to signal replay has finished
@@ -339,6 +343,7 @@ func (rc *raftNode) startRaft() {
 }
 
 // stop closes http, closes all channels, and stops raft.
+// stop关闭http, 关闭所有的channels并且关闭raft
 func (rc *raftNode) stop() {
 	rc.stopHTTP()
 	close(rc.commitC)
@@ -361,8 +366,10 @@ func (rc *raftNode) publishSnapshot(snapshotToSave raftpb.Snapshot) {
 	defer log.Printf("finished publishing snapshot at index %d", rc.snapshotIndex)
 
 	if snapshotToSave.Metadata.Index <= rc.appliedIndex {
+		// snapshot的index应该大于当前的appliedIndex
 		log.Fatalf("snapshot index [%d] should > progress.appliedIndex [%d]", snapshotToSave.Metadata.Index, rc.appliedIndex)
 	}
+	// 发送一个nil到commitC，触发kvstore加载snapshot
 	rc.commitC <- nil // trigger kvstore to load snapshot
 
 	rc.confState = snapshotToSave.Metadata.ConfState
@@ -395,6 +402,7 @@ func (rc *raftNode) maybeTriggerSnapshot() {
 	if rc.appliedIndex > snapshotCatchUpEntriesN {
 		compactIndex = rc.appliedIndex - snapshotCatchUpEntriesN
 	}
+	// 对raft storage进行compact
 	if err := rc.raftStorage.Compact(compactIndex); err != nil {
 		panic(err)
 	}
@@ -463,6 +471,7 @@ func (rc *raftNode) serveChannels() {
 			// 将HardState以及Entries写入Wal中
 			rc.wal.Save(rd.HardState, rd.Entries)
 			if !raft.IsEmptySnap(rd.Snapshot) {
+				// 可能会有从leader发送过来的Snapshot
 				rc.saveSnap(rd.Snapshot)
 				rc.raftStorage.ApplySnapshot(rd.Snapshot)
 				rc.publishSnapshot(rd.Snapshot)

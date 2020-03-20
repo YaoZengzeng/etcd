@@ -100,6 +100,7 @@ type Lessor interface {
 
 	// Attach attaches given leaseItem to the lease with given LeaseID.
 	// If the lease does not exist, an error will be returned.
+	// Attach将给定的leaseItem和给定leaseID的lease相关联
 	Attach(id LeaseID, items []LeaseItem) error
 
 	// GetLease returns LeaseID for given item.

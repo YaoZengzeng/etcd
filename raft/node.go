@@ -501,6 +501,7 @@ func (n *node) step(ctx context.Context, m pb.Message) error {
 }
 
 func (n *node) stepWait(ctx context.Context, m pb.Message) error {
+	// 发送proposal并且等待
 	return n.stepWithWaitOption(ctx, m, true)
 }
 
@@ -522,6 +523,7 @@ func (n *node) stepWithWaitOption(ctx context.Context, m pb.Message, wait bool) 
 	ch := n.propc
 	pm := msgWithResult{m: m}
 	if wait {
+		// 创建一个result chan，等待完成
 		pm.result = make(chan error, 1)
 	}
 	select {

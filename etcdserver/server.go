@@ -90,6 +90,7 @@ const (
 
 	// max number of in-flight snapshot messages etcdserver allows to have
 	// This number is more than enough for most clusters with 5 machines.
+	// etcdserver允许的最多数目的在处理的snapshot messages
 	maxInFlightMsgSnap = 16
 
 	releaseDelayAfterSnapshot = 30 * time.Second
@@ -238,6 +239,7 @@ type EtcdServer struct {
 	applyV2 ApplierV2
 
 	// applyV3 is the applier with auth and quotas
+	// applyV3是有着auth和quotas的applier
 	applyV3 applierV3
 	// applyV3Base is the core applier without auth or quotas
 	// applyV3Base是核心的applier，没有auth或者quotas
@@ -385,6 +387,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 		cl.SetID(id, existingCluster.ID())
 
 	case !haveWAL && cfg.NewCluster:
+		// 没有WAL并且是新的集群
 		if err = cfg.VerifyBootstrap(); err != nil {
 			return nil, err
 		}
@@ -609,6 +612,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 		srv.compactor.Run()
 	}
 
+	// 创建applyV3用于真正存储数据
 	srv.applyV3Base = srv.newApplierV3Backend()
 	if err = srv.restoreAlarms(); err != nil {
 		return nil, err
@@ -629,6 +633,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 		ID:          id,
 		URLs:        cfg.PeerURLs,
 		ClusterID:   cl.ID(),
+		// 将srv赋值给Raft
 		Raft:        srv,
 		Snapshotter: ss,
 		ServerStats: sstats,
@@ -647,6 +652,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 	}
 	for _, m := range cl.Members() {
 		if m.ID != id {
+			// 将member加入transport
 			tr.AddPeer(m.ID, m.PeerURLs)
 		}
 	}
@@ -935,6 +941,7 @@ type raftReadyHandler struct {
 func (s *EtcdServer) run() {
 	lg := s.getLogger()
 
+	// sn是当前的Snapshot
 	sn, err := s.r.raftStorage.Snapshot()
 	if err != nil {
 		if lg != nil {
@@ -1007,6 +1014,7 @@ func (s *EtcdServer) run() {
 			}
 		},
 	}
+	// 启动raft node
 	s.r.start(rh)
 
 	ep := etcdProgress{
@@ -1127,8 +1135,10 @@ func (s *EtcdServer) applyAll(ep *etcdProgress, apply *apply) {
 	// wait for the raft routine to finish the disk writes before triggering a
 	// snapshot. or applied index might be greater than the last index in raft
 	// storage, since the raft routine might be slower than apply routine.
+	// 在触发一个snapshot之前等待raft routine完成磁盘写，否则applied index可能大于raft storage里的last index
 	<-apply.notifyc
 
+	// 触发snapshot
 	s.triggerSnapshot(ep)
 	select {
 	// snapshot requested via send()
@@ -2146,7 +2156,9 @@ func (s *EtcdServer) apply(
 		e := es[i]
 		switch e.Type {
 		case raftpb.EntryNormal:
+			// 如果是Normal类型的日志
 			s.applyEntryNormal(&e)
+			// 设置index和term
 			s.setAppliedIndex(e.Index)
 			s.setTerm(e.Term)
 
@@ -2190,6 +2202,8 @@ func (s *EtcdServer) applyEntryNormal(e *raftpb.Entry) {
 
 	// raft state machine may generate noop entry when leader confirmation.
 	// skip it in advance to avoid some potential bug in the future
+	// raft状态机可能产生noop entry，当在确认leader时
+	// 提前skip以防在未来出现可能的bug
 	if len(e.Data) == 0 {
 		select {
 		case s.forceVersionC <- struct{}{}:
@@ -2204,6 +2218,7 @@ func (s *EtcdServer) applyEntryNormal(e *raftpb.Entry) {
 	}
 
 	var raftReq pb.InternalRaftRequest
+	// 从data中unmarshal得到数据
 	if !pbutil.MaybeUnmarshal(&raftReq, e.Data) { // backward compatible
 		var r pb.Request
 		rp := &r
@@ -2233,7 +2248,7 @@ func (s *EtcdServer) applyEntryNormal(e *raftpb.Entry) {
 		if !needResult && raftReq.Txn != nil {
 			removeNeedlessRangeReqs(raftReq.Txn)
 		}
-		// 应用V3
+		// 将请求应用的applyV3
 		ar = s.applyV3.Apply(&raftReq)
 	}
 
@@ -2270,6 +2285,8 @@ func (s *EtcdServer) applyEntryNormal(e *raftpb.Entry) {
 
 // applyConfChange applies a ConfChange to the server. It is only
 // invoked with a ConfChange that has already passed through Raft
+// applyConfChange将一个ConfChange应用到server，这个函数只有在一个ConfChange通过
+// Raft之后才会被调用
 func (s *EtcdServer) applyConfChange(cc raftpb.ConfChange, confState *raftpb.ConfState) (bool, error) {
 	if err := s.cluster.ValidateConfigurationChange(cc); err != nil {
 		cc.NodeID = raft.None
