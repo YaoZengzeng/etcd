@@ -23,6 +23,8 @@ import (
 // Progress represents a follower’s progress in the view of the leader. Leader
 // maintains progresses of all followers, and sends entries to the follower
 // based on its progress.
+// Progress代表leader视角来看一个follower的进程，Leader保持所有follower的状态并且发送entries到follower
+// 基于这个progress
 //
 // NB(tbg): Progress is basically a state machine whose transitions are mostly
 // strewn around `*raft.raft`. Additionally, some fields are only used when in a
@@ -30,16 +32,22 @@ import (
 type Progress struct {
 	Match, Next uint64
 	// State defines how the leader should interact with the follower.
+	// State定义了leader和follower交互的方式
 	//
 	// When in StateProbe, leader sends at most one replication message
 	// per heartbeat interval. It also probes actual progress of the follower.
+	// 当处于StateProbe状态，leader在每个heartbeat interval发送最多一个replication message
+	// 它同时也探测follower的真实进展
 	//
 	// When in StateReplicate, leader optimistically increases next
 	// to the latest entry sent after sending replication message. This is
 	// an optimized state for fast replicating log entries to the follower.
+	// 当处于StateReplicate，leader会将next设置为在发送replication message之后的最新的entry
+	// 这是一种加快同步log entries到follower的方法
 	//
 	// When in StateSnapshot, leader should have sent out snapshot
 	// before and stops sending any replication message.
+	// 当处于StateSnapshot，leader应该已经在之前发送了snapshot并且停止发送任何的replication message
 	State StateType
 
 	// PendingSnapshot is used in StateSnapshot.
@@ -52,6 +60,8 @@ type Progress struct {
 	// RecentActive is true if the progress is recently active. Receiving any messages
 	// from the corresponding follower indicates the progress is active.
 	// RecentActive can be reset to false after an election timeout.
+	// RecentActive为true，如果progress最近是active的，从follower接收到任何messages表明这个progress是active的
+	// 在经过一个election timeout之后，RecentActive会被设置为false
 	//
 	// TODO(tbg): the leader should always have this set to true.
 	RecentActive bool
@@ -66,6 +76,7 @@ type Progress struct {
 	// The max number of entries per message is defined in raft config as MaxSizePerMsg.
 	// Thus inflight effectively limits both the number of inflight messages
 	// and the bandwidth each Progress can use.
+	// inflight有效地同时限制了inflight message的数目以及每个Progress能使用的带宽
 	// When inflights is Full, no more message should be sent.
 	// When a leader sends out a message, the index of the last
 	// entry should be added to inflights. The index MUST be added
@@ -76,6 +87,7 @@ type Progress struct {
 	Inflights *Inflights
 
 	// IsLearner is true if this progress is tracked for a learner.
+	// 如果这个progress是learner，则IsLeader返回true
 	IsLearner bool
 }
 
