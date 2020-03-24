@@ -264,14 +264,17 @@ func (c *ServerConfig) WALDir() string {
 	return filepath.Join(c.MemberDir(), "wal")
 }
 
+// snapshot dir为member/snap
 func (c *ServerConfig) SnapDir() string { return filepath.Join(c.MemberDir(), "snap") }
 
 func (c *ServerConfig) ShouldDiscover() bool { return c.DiscoveryURL != "" }
 
 // ReqTimeout returns timeout for request to finish.
+// ReqTimeout返回请求结束的超时时间
 func (c *ServerConfig) ReqTimeout() time.Duration {
 	// 5s for queue waiting, computation and disk IO delay
 	// + 2 * election timeout for possible leader election
+	// 5s用于排队，计算以及磁盘IO的延时+2倍的超时用于可能的选主
 	return 5*time.Second + 2*time.Duration(c.ElectionTicks*int(c.TickMs))*time.Millisecond
 }
 

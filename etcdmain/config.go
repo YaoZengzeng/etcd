@@ -98,6 +98,7 @@ func newConfig() *config {
 	cfg := &config{
 		ec: *embed.NewConfig(),
 		cp: configProxy{
+			// 默认关闭Proxy
 			Proxy:                  proxyFlagOff,
 			ProxyFailureWaitMs:     5000,
 			ProxyRefreshIntervalMs: 30000,
@@ -167,11 +168,13 @@ func newConfig() *config {
 	fs.Var(
 		flags.NewUniqueURLsWithExceptions(embed.DefaultInitialAdvertisePeerURLs, ""),
 		"initial-advertise-peer-urls",
+		// 一系列member的peer URLs用来通知集群的其余部分
 		"List of this member's peer URLs to advertise to the rest of the cluster.",
 	)
 	fs.Var(
 		flags.NewUniqueURLsWithExceptions(embed.DefaultAdvertiseClientURLs, ""),
 		"advertise-client-urls",
+		// 一系列member的client URLs用来通知public
 		"List of this member's client URLs to advertise to the public.",
 	)
 	fs.StringVar(&cfg.ec.Durl, "discovery", cfg.ec.Durl, "Discovery URL used to bootstrap the cluster.")

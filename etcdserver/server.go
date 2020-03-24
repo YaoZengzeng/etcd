@@ -136,6 +136,7 @@ type ServerV2 interface {
 	Leader() types.ID
 
 	// Do takes a V2 request and attempts to fulfill it, returning a Response.
+	// Do获取一个V2请求并且试着填充它，返回一个Response
 	Do(ctx context.Context, r pb.Request) (Response, error)
 	stats.Stats
 	ClientCertAuthEnabled() bool
@@ -338,6 +339,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 	// ss是一个snapshotter
 	ss := snap.New(cfg.Logger, cfg.SnapDir())
 
+	// backend位于snapshot目录下的db文件
 	bepath := cfg.backendPath()
 	beExist := fileutil.Exist(bepath)
 	// 打开backend
@@ -511,6 +513,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 
 	heartbeat := time.Duration(cfg.TickMs) * time.Millisecond
 	srv = &EtcdServer{
+		// 创建readych
 		readych:     make(chan struct{}),
 		Cfg:         cfg,
 		lgMu:        new(sync.RWMutex),
@@ -766,7 +769,8 @@ func (s *EtcdServer) Start() {
 // start prepares and starts server in a new goroutine. It is no longer safe to
 // modify a server's fields after it has been sent to Start.
 // This function is just used for testing.
-// start在一个新的goroutine中准备并且启动server
+// start在一个新的goroutine中准备并且启动server，当它被发送给Start之前，修改server的字段
+// 将不再安全
 func (s *EtcdServer) start() {
 	lg := s.getLogger()
 
@@ -929,7 +933,7 @@ type etcdProgress struct {
 
 // raftReadyHandler contains a set of EtcdServer operations to be called by raftNode,
 // and helps decouple state machine logic from Raft algorithms.
-// raftReadyHandler包含一系列由raftNode调用的EtcdServer操作并且帮助从Raft algorithms中结构状态机的逻辑
+// raftReadyHandler包含一系列由raftNode调用的EtcdServer操作并且帮助从Raft algorithms中解耦状态机的逻辑
 // TODO: add a state machine interface to apply the commit entries and do snapshot/recover
 type raftReadyHandler struct {
 	getLead              func() (lead uint64)
@@ -1553,6 +1557,7 @@ func (s *EtcdServer) Stop() {
 
 // ReadyNotify returns a channel that will be closed when the server
 // is ready to serve client requests
+// ReadyNotify返回一个channel，它会在server准备好服务client requests的时候被关闭
 func (s *EtcdServer) ReadyNotify() <-chan struct{} { return s.readych }
 
 func (s *EtcdServer) stopWithDelay(d time.Duration, err error) {
@@ -2021,6 +2026,8 @@ func (s *EtcdServer) sync(timeout time.Duration) {
 // publish registers server information into the cluster. The information
 // is the JSON representation of this server's member struct, updated with the
 // static clientURLs of the server.
+// 发布registers server information到cluster，这个信息是server的member结构的JSON表示
+// 用server的静态static clientURLs进行更新
 // The function keeps attempting to register until it succeeds,
 // or its server is stopped.
 //
@@ -2054,6 +2061,7 @@ func (s *EtcdServer) publish(timeout time.Duration) {
 			close(s.readych)
 			if lg := s.getLogger(); lg != nil {
 				lg.Info(
+					// 将local member发布到cluster，通过raft
 					"published local member to cluster through raft",
 					zap.String("local-member-id", s.ID().String()),
 					zap.String("local-member-attributes", fmt.Sprintf("%+v", s.attributes)),
@@ -2062,6 +2070,7 @@ func (s *EtcdServer) publish(timeout time.Duration) {
 					zap.Duration("publish-timeout", timeout),
 				)
 			} else {
+				// 将节点发布到cluster
 				plog.Infof("published %+v to cluster %s", s.attributes, s.cluster.ID())
 			}
 			return

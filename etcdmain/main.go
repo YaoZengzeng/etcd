@@ -34,6 +34,7 @@ func Main() {
 			cmd = "grpc-proxy"
 		}
 		switch cmd {
+		// 如果第一个参数为gateway或者grpc-proxy则做特别处理
 		case "gateway", "grpc-proxy":
 			if err := rootCmd.Execute(); err != nil {
 				fmt.Fprint(os.Stderr, err)

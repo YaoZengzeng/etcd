@@ -32,8 +32,10 @@ type BatchTx interface {
 	UnsafeSeqPut(bucketName []byte, key []byte, value []byte)
 	UnsafeDelete(bucketName []byte, key []byte)
 	// Commit commits a previous tx and begins a new writable one.
+	// Commit提交之前的tx并且开始一个新的可以写入的tx
 	Commit()
 	// CommitAndStop commits the previous tx and does not create a new one.
+	// CommitAndStop提交之前的tx并且不再创建一个新的tx
 	CommitAndStop()
 }
 

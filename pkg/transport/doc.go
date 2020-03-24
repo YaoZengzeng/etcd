@@ -14,4 +14,5 @@
 
 // Package transport implements various HTTP transport utilities based on Go
 // net package.
+// transport包基于Go的net包实现了各种HTTP transport utitlities
 package transport

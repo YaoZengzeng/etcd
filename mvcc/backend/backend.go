@@ -53,6 +53,7 @@ type Backend interface {
 	ReadTx() ReadTx
 	BatchTx() BatchTx
 	// ConcurrentReadTx returns a non-blocking read transaction.
+	// ConcurrentReadTx返回一个非阻塞的read transaction
 	ConcurrentReadTx() ReadTx
 
 	Snapshot() Snapshot

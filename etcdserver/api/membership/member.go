@@ -31,15 +31,18 @@ var (
 )
 
 // RaftAttributes represents the raft related attributes of an etcd member.
+// RaftAttributes代表了一个etcd member和raft相关的特性
 type RaftAttributes struct {
 	// PeerURLs is the list of peers in the raft cluster.
 	// TODO(philips): ensure these are URLs
+	// PeerURLs是raft集群里的一系列peer的urls
 	PeerURLs []string `json:"peerURLs"`
 	// IsLearner indicates if the member is raft learner.
 	IsLearner bool `json:"isLearner,omitempty"`
 }
 
 // Attributes represents all the non-raft related attributes of an etcd member.
+// Attributes代表一个etcd member所有非raft相关的特性
 type Attributes struct {
 	Name       string   `json:"name,omitempty"`
 	ClientURLs []string `json:"clientURLs,omitempty"`
@@ -53,6 +56,8 @@ type Member struct {
 
 // NewMember creates a Member without an ID and generates one based on the
 // cluster name, peer URLs, and time. This is used for bootstrapping/adding new member.
+// NewMember创建一个Member并且没有ID，它会基于cluster name, peer URLs以及time生成一个
+// 这用于启动或者增加一个member
 func NewMember(name string, peerURLs types.URLs, clusterName string, now *time.Time) *Member {
 	return newMember(name, peerURLs, clusterName, now, false)
 }

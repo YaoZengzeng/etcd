@@ -50,6 +50,7 @@ func init() {
 }
 
 // newGatewayCommand returns the cobra command for "gateway".
+// newGatewayCommand返回"gateway"的cobra command
 func newGatewayCommand() *cobra.Command {
 	lpc := &cobra.Command{
 		Use:   "gateway <subcommand>",

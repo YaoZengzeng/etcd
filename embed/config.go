@@ -115,6 +115,7 @@ func init() {
 }
 
 // Config holds the arguments for configuring an etcd server.
+// Config维护了一个etcd server的配置参数
 type Config struct {
 	Name   string `json:"name"`
 	Dir    string `json:"data-dir"`
@@ -171,8 +172,10 @@ type Config struct {
 	InitialElectionTickAdvance bool `json:"initial-election-tick-advance"`
 
 	// BackendBatchInterval is the maximum time before commit the backend transaction.
+	// BackendBatchInterval是在commit backend transaction之前的最大时间
 	BackendBatchInterval time.Duration `json:"backend-batch-interval"`
 	// BackendBatchLimit is the maximum operations before commit the backend transaction.
+	// BackendBatchLimit是commit backend transaction之前的最大operations
 	BackendBatchLimit int   `json:"backend-batch-limit"`
 	QuotaBackendBytes int64 `json:"quota-backend-bytes"`
 	MaxTxnOps         uint  `json:"max-txn-ops"`
@@ -195,6 +198,7 @@ type Config struct {
 	DNSClusterServiceName string `json:"discovery-srv-name"`
 	Dproxy                string `json:"discovery-proxy"`
 	Durl                  string `json:"discovery"`
+	// 初始集群的名字
 	InitialCluster        string `json:"initial-cluster"`
 	InitialClusterToken   string `json:"initial-cluster-token"`
 	StrictReconfigCheck   bool   `json:"strict-reconfig-check"`
@@ -372,11 +376,11 @@ type securityConfig struct {
 
 // NewConfig creates a new Config populated with default values.
 func NewConfig() *Config {
-	// 监听本地的2380端口
+	// 监听本地的2380端口，用于Peer之间的通信
 	lpurl, _ := url.Parse(DefaultListenPeerURLs)
 	// DefaultInitialAdvertisePeerURLs也是本地的2380
 	apurl, _ := url.Parse(DefaultInitialAdvertisePeerURLs)
-	// 监听本地的2379端口
+	// 监听本地的2379端口，用于client和etcd之间进行通信
 	lcurl, _ := url.Parse(DefaultListenClientURLs)
 	acurl, _ := url.Parse(DefaultAdvertiseClientURLs)
 	cfg := &Config{
@@ -420,6 +424,7 @@ func NewConfig() *Config {
 		AuthToken:  "simple",
 		BcryptCost: uint(bcrypt.DefaultCost),
 
+		// 默认ProVote为fasle
 		PreVote: false, // TODO: enable by default in v3.5
 
 		loggerMu:            new(sync.RWMutex),
@@ -631,6 +636,7 @@ func (cfg *Config) Validate() error {
 }
 
 // PeerURLsMapAndToken sets up an initial peer URLsMap and cluster token for bootstrap or discovery.
+// PeerURLsMapAndToken设置一个初始的peer URLsMap以及cluster token用于启动或者发现
 func (cfg *Config) PeerURLsMapAndToken(which string) (urlsmap types.URLsMap, token string, err error) {
 	token = cfg.InitialClusterToken
 	switch {
@@ -674,6 +680,7 @@ func (cfg *Config) PeerURLsMapAndToken(which string) (urlsmap types.URLsMap, tok
 
 	default:
 		// We're statically configured, and cluster has appropriately been set.
+		// 我们已经被静态配置了并且集群已经恰当地被设置了
 		urlsmap, err = types.NewURLsMap(cfg.InitialCluster)
 	}
 	return urlsmap, token, err
@@ -740,6 +747,7 @@ func (cfg Config) InitialClusterFromName(name string) (ret string) {
 		n = DefaultName
 	}
 	for i := range cfg.APUrls {
+		// 將peers的advertise地址连接起来
 		ret = ret + "," + n + "=" + cfg.APUrls[i].String()
 	}
 	return ret[1:]
@@ -803,10 +811,13 @@ func (cfg *Config) PeerSelfCert() (err error) {
 }
 
 // UpdateDefaultClusterFromName updates cluster advertise URLs with, if available, default host,
+// UpdateDefaultClusterFromName用默认的host更新cluster的advertise URLs
 // if advertise URLs are default values(localhost:2379,2380) AND if listen URL is 0.0.0.0.
 // e.g. advertise peer URL localhost:2380 or listen peer URL 0.0.0.0:2380
 // then the advertise peer host would be updated with machine's default host,
 // while keeping the listen URL's port.
+// 例如advertise URLs为默认的values（localhost:2379,2380）并且如果listen URL为0.0.0.0，则advertise peer host
+// 会用机器的default host替代同时保留listen URL的port
 // User can work around this by explicitly setting URL with 127.0.0.1.
 // It returns the default hostname, if used, and the error, if any, from getting the machine's default host.
 // TODO: check whether fields are set instead of whether fields have default value

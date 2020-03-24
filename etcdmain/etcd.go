@@ -115,6 +115,7 @@ func startEtcdOrProxyV2() {
 	}
 
 	if cfg.ec.Dir == "" {
+		// 默认目录为"名称.etcd"
 		cfg.ec.Dir = fmt.Sprintf("%v.etcd", cfg.ec.Name)
 		if lg != nil {
 			lg.Warn(
@@ -158,8 +159,10 @@ func startEtcdOrProxyV2() {
 			}
 		}
 	} else {
+		// 如果目录不存在，则重新初始化
 		shouldProxy := cfg.isProxy()
 		if !shouldProxy {
+			// 启动etcd
 			stopped, errc, err = startEtcd(&cfg.ec)
 			if derr, ok := err.(*etcdserver.DiscoveryError); ok && derr.Err == v2discovery.ErrFullCluster {
 				if cfg.shouldFallbackToProxy() {
@@ -284,6 +287,8 @@ func startEtcdOrProxyV2() {
 	// for accepting connections. The etcd instance should be
 	// joined with the cluster and ready to serve incoming
 	// connections.
+	// 在这个节点，etcd的初始化已经完成，listener正在监听TCP端口并且准备接收连接
+	// etcd实例已经加入集群并且准备服务incoming connections
 	notifySystemd(lg)
 
 	select {
@@ -309,6 +314,7 @@ func startEtcd(cfg *embed.Config) (<-chan struct{}, <-chan error, error) {
 	}
 	osutil.RegisterInterruptHandler(e.Close)
 	select {
+	// 等待e.Server加入cluster
 	case <-e.Server.ReadyNotify(): // wait for e.Server to join the cluster
 	case <-e.Server.StopNotify(): // publish aborted from 'ErrStopped'
 	}
@@ -558,6 +564,7 @@ func startProxy(cfg *config) error {
 // Dies if the datadir is invalid.
 // identifyDataDirOrDie返回data dir的类型，如果datadir不合法的话，Die
 func identifyDataDirOrDie(lg *zap.Logger, dir string) dirType {
+	// 根据目录文件的类型，决定节点的类型
 	names, err := fileutil.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {

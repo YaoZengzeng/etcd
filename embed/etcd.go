@@ -134,6 +134,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 			zap.Strings("listen-client-urls", e.cfg.getLCURLs()),
 		)
 	}
+	// 构建client listener
 	if e.sctxs, err = configureClientListeners(cfg); err != nil {
 		return e, err
 	}
@@ -167,6 +168,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 	// 解析后端的FreeList的类型
 	backendFreelistType := parseBackendFreelistType(cfg.ExperimentalBackendFreelistType)
 
+	// 构建etcd server的配置文件
 	srvcfg := etcdserver.ServerConfig{
 		Name:                       cfg.Name,
 		ClientURLs:                 cfg.ACUrls,
@@ -234,14 +236,18 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 			return e, err
 		}
 	}
+	// 启动etcd server
 	e.Server.Start()
 
+	// 启动peer handler
 	if err = e.servePeers(); err != nil {
 		return e, err
 	}
+	// 启动client handler
 	if err = e.serveClients(); err != nil {
 		return e, err
 	}
+	// 启动metric handler
 	if err = e.serveMetrics(); err != nil {
 		return e, err
 	}
@@ -524,6 +530,7 @@ func configurePeerListeners(cfg *Config) (peers []*peerListener, err error) {
 				}
 			}
 		}
+		// 构建peer listeners
 		peers[i] = &peerListener{close: func(context.Context) error { return nil }}
 		peers[i].Listener, err = rafthttp.NewListener(u, &cfg.PeerTLSInfo)
 		if err != nil {
@@ -563,6 +570,7 @@ func (e *Etcd) servePeers() (err error) {
 			// gracefully shutdown http.Server
 			// close open listeners, idle connections
 			// until context cancel or time-out
+			// 优雅地关闭http.Server，关闭open listeners，空闲的connections知道context cancel或者timeout
 			if e.cfg.logger != nil {
 				e.cfg.logger.Info(
 					"stopping serving peer traffic",
@@ -581,6 +589,7 @@ func (e *Etcd) servePeers() (err error) {
 	}
 
 	// start peer servers in a goroutine
+	// 在一个goroutine中启动Peer servers
 	for _, pl := range e.Peers {
 		go func(l *peerListener) {
 			u := l.Addr().String()
@@ -729,6 +738,7 @@ func (e *Etcd) serveClients() (err error) {
 	}
 
 	// Start a client server goroutine for each listen address
+	// 为每个listen address启动一个client server goroutine
 	var h http.Handler
 	if e.Config().EnableV2 {
 		if len(e.Config().ExperimentalEnableV2V3) > 0 {
@@ -759,6 +769,7 @@ func (e *Etcd) serveClients() (err error) {
 	}
 
 	// start client servers in each goroutine
+	// 在每个goroutine中启动client servers
 	for _, sctx := range e.sctxs {
 		go func(s *serveCtx) {
 			e.errHandler(s.serve(e.Server, &e.cfg.ClientTLSInfo, h, e.errHandler, gopts...))

@@ -49,6 +49,7 @@ func newBackend(cfg ServerConfig) backend.Backend {
 		// permit 10% excess over quota for disarm
 		bcfg.MmapSize = uint64(cfg.QuotaBackendBytes + cfg.QuotaBackendBytes/10)
 	}
+	// 创建后端存储backend
 	return backend.New(bcfg)
 }
 
@@ -90,6 +91,7 @@ func openBackend(cfg ServerConfig) backend.Backend {
 				zap.Duration("took", time.Since(now)),
 			)
 		} else {
+			// 开启backend失败，说明另一个进程占据了file lock或者加载backend文件超过了10s
 			plog.Warningf("another etcd process is using %q and holds the file lock, or loading backend file is taking >10 seconds", fn)
 			plog.Warningf("waiting for it to exit before starting...")
 		}

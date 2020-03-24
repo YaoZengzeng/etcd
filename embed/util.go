@@ -25,5 +25,6 @@ func isMemberInitialized(cfg *Config) bool {
 	if waldir == "" {
 		waldir = filepath.Join(cfg.Dir, "member", "wal")
 	}
+	// 根据wal目录是否存在来判断member是否已经被初始化了
 	return wal.Exist(waldir)
 }
