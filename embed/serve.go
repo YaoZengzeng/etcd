@@ -318,6 +318,7 @@ func (ac *accessController) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 	}
 
 	if req.TLS == nil { // check origin if client connection is not secure
+		// 如果client的连接不是安全的，检查origin
 		host := httputil.GetHostname(req)
 		if !ac.s.AccessController.IsHostWhitelisted(host) {
 			if ac.lg != nil {

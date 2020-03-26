@@ -88,8 +88,10 @@ type backend struct {
 	// 64-bit aligned, otherwise 32-bit tests will crash
 
 	// size is the number of bytes allocated in the backend
+	// size是backend申请的字节数
 	size int64
 	// sizeInUse is the number of bytes actually used in the backend
+	// sizeInUse是backend当前真正使用的字节数
 	sizeInUse int64
 	// commits counts number of commits since start
 	commits int64
@@ -219,6 +221,7 @@ func (b *backend) ConcurrentReadTx() ReadTx {
 }
 
 // ForceCommit forces the current batching tx to commit.
+// ForceCommit强行让当前的tx去commit
 func (b *backend) ForceCommit() {
 	b.batchTx.Commit()
 }

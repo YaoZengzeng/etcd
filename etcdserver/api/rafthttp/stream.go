@@ -130,6 +130,7 @@ type streamWriter struct {
 
 // startStreamWriter creates a streamWrite and starts a long running go-routine that accepts
 // messages and writes to the attached outgoing connection.
+// startStreamWriter创建一个streamWriter并且启动一个长时间运行的go-routine用来接收message，再写入到关联的outgoing connection
 func startStreamWriter(lg *zap.Logger, local, id types.ID, status *peerStatus, fs *stats.FollowerStats, r Raft) *streamWriter {
 	w := &streamWriter{
 		lg: lg,
@@ -173,6 +174,7 @@ func (cw *streamWriter) run() {
 	}
 
 	for {
+		// 一开始heartbeatc，msgc都为nil，因此并不会接收到message
 		select {
 		case <-heartbeatc:
 			err := enc.encode(&linkHeartbeatMessage)
@@ -197,6 +199,7 @@ func (cw *streamWriter) run() {
 					zap.String("remote-peer-id", cw.peerID.String()),
 				)
 			} else {
+				// 失去连接
 				plog.Warningf("lost the TCP streaming connection with peer %s (%s writer)", cw.peerID, t)
 			}
 			heartbeatc, msgc = nil, nil
@@ -207,6 +210,7 @@ func (cw *streamWriter) run() {
 				unflushed += m.Size()
 
 				if len(msgc) == 0 || batched > streamBufSize/2 {
+					// 超过2K个字节就发送
 					flusher.Flush()
 					sentBytes.WithLabelValues(cw.peerID.String()).Add(float64(unflushed))
 					unflushed = 0
@@ -238,6 +242,7 @@ func (cw *streamWriter) run() {
 			cw.mu.Lock()
 			closed := cw.closeUnlocked()
 			t = conn.t
+			// 收到连接，初始化enc
 			switch conn.t {
 			case streamTypeMsgAppV2:
 				enc = newMsgAppV2Encoder(conn.Writer, cw.fs)

@@ -26,6 +26,7 @@ type index interface {
 	Get(key []byte, atRev int64) (rev, created revision, ver int64, err error)
 	Range(key, end []byte, atRev int64) ([][]byte, []revision)
 	Revisions(key, end []byte, atRev int64) []revision
+	// 将key以及对应的revision写入
 	Put(key []byte, rev revision)
 	Tombstone(key []byte, rev revision) error
 	RangeSince(key, end []byte, rev int64) []revision
@@ -70,6 +71,7 @@ func (ti *treeIndex) Get(key []byte, atRev int64) (modified, created revision, v
 	keyi := &keyIndex{key: key}
 	ti.RLock()
 	defer ti.RUnlock()
+	// 根据key找到对应的keyIndex，即包含key和它的各个generation
 	if keyi = ti.keyIndex(keyi); keyi == nil {
 		return revision{}, revision{}, 0, ErrRevisionNotFound
 	}

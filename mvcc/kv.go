@@ -43,6 +43,7 @@ type ReadView interface {
 	Rev() int64
 
 	// Range gets the keys in the range at rangeRev.
+	// Range获取在rangeRev范围内的keys
 	// The returned rev is the current revision of the KV when the operation is executed.
 	// If rangeRev <=0, range gets the keys at currentRev.
 	// If `end` is nil, the request returns the key.
@@ -67,6 +68,7 @@ type WriteView interface {
 	// A deleteRange increases the rev of the store if any key in the range exists.
 	// The number of key deleted will be returned.
 	// The returned rev is the current revision of the KV when the operation is executed.
+	// 返回的rev是操作进行时KV当前的revision
 	// It also generates one event for each key delete in the event history.
 	// if the `end` is nil, deleteRange deletes the key.
 	// if the `end` is not nil, deleteRange deletes the keys in range [key, range_end).

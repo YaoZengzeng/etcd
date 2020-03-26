@@ -161,6 +161,7 @@ func NewStore(lg *zap.Logger, b backend.Backend, le lease.Lessor, ig ConsistentI
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// 从backend中进行恢复操作
 	if err := s.restore(); err != nil {
 		// TODO: return the error instead of panic here?
 		panic("failed to recover store from backend")

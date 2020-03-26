@@ -466,6 +466,7 @@ func startNode(cfg ServerConfig, cl *membership.RaftCluster, ids []types.ID) (id
 	peers := make([]raft.Peer, len(ids))
 	for i, id := range ids {
 		var ctx []byte
+		// 将Member的内容进行marshal，放入Context中
 		ctx, err = json.Marshal((*cl).Member(id))
 		if err != nil {
 			if cfg.Logger != nil {

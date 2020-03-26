@@ -26,9 +26,11 @@ import (
 const (
 	// DefaultQuotaBytes is the number of bytes the backend Size may
 	// consume before exceeding the space quota.
+	// DefaultQuotaBytes是在超过space quota之前，backend可能消耗的字节数
 	DefaultQuotaBytes = int64(2 * 1024 * 1024 * 1024) // 2GB
 	// MaxQuotaBytes is the maximum number of bytes suggested for a backend
 	// quota. A larger quota may lead to degraded performance.
+	// 一个更大的quota可能会降低性能
 	MaxQuotaBytes = int64(8 * 1024 * 1024 * 1024) // 8GB
 )
 

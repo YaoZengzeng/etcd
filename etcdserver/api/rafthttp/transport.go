@@ -71,7 +71,7 @@ type Transporter interface {
 	// AddRemote用给定的peer urls加入transport
 	// A remote helps newly joined member to catch up the progress of cluster,
 	// and will not be used after that.
-	// remote用来帮助新加入的member
+	// remote用来帮助新加入的member追赶上整个集群的节奏，之后就不会再使用
 	// It is the caller's responsibility to ensure the urls are all valid,
 	// or it panics.
 	AddRemote(id types.ID, urls []string)
@@ -171,13 +171,17 @@ func (t *Transport) Start() error {
 }
 
 func (t *Transport) Handler() http.Handler {
+	// 构建各个pipeline, stream以及snapshot等各个handler
 	pipelineHandler := newPipelineHandler(t, t.Raft, t.ClusterID)
 	streamHandler := newStreamHandler(t, t, t.Raft, t.ID, t.ClusterID)
 	snapHandler := newSnapshotHandler(t, t.Raft, t.Snapshotter, t.ClusterID)
 	mux := http.NewServeMux()
 	mux.Handle(RaftPrefix, pipelineHandler)
+	// /raft/stream
 	mux.Handle(RaftStreamPrefix+"/", streamHandler)
+	// /raft/snapshot
 	mux.Handle(RaftSnapshotPrefix, snapHandler)
+	// /raft/probe
 	mux.Handle(ProbingPrefix, probing.NewHandler())
 	return mux
 }
@@ -205,6 +209,7 @@ func (t *Transport) Send(msgs []raftpb.Message) {
 			if m.Type == raftpb.MsgApp {
 				t.ServerStats.SendAppendReq(m.Size())
 			}
+			// message中包含了发送的目的地，调用p.send(m)进行发送
 			p.send(m)
 			continue
 		}
@@ -331,6 +336,7 @@ func (t *Transport) AddPeer(id types.ID, us []string) {
 		}
 	}
 	fs := t.LeaderStats.Follower(id.String())
+	// 启动peer
 	t.peers[id] = startPeer(t, urls, id, fs)
 	addPeerToProber(t.Logger, t.pipelineProber, id.String(), us, RoundTripperNameSnapshot, rttSec)
 	addPeerToProber(t.Logger, t.streamProber, id.String(), us, RoundTripperNameRaftMessage, rttSec)

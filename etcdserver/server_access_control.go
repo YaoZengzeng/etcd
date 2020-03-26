@@ -51,6 +51,7 @@ func (ac *AccessController) OriginAllowed(origin string) bool {
 
 // IsHostWhitelisted returns true if the host is whitelisted.
 // If whitelist is empty, allow all.
+// IsHostWhitelisted返回true，如果host是在白名单内的，如果白名单为空，则全部允许
 func (ac *AccessController) IsHostWhitelisted(host string) bool {
 	ac.hostWhitelistMu.RLock()
 	defer ac.hostWhitelistMu.RUnlock()

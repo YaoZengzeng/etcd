@@ -18,6 +18,7 @@ import "go.etcd.io/etcd/raft/raftpb"
 
 type encoder interface {
 	// encode encodes the given message to an output stream.
+	// encode将给定的message编码到一个output stream
 	encode(m *raftpb.Message) error
 }
 

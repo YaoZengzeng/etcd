@@ -13,4 +13,5 @@
 // limitations under the License.
 
 // Package backend defines a standard interface for etcd's backend MVCC storage.
+// backend定义了用于etcd的backend MVCC storage的标准接口
 package backend

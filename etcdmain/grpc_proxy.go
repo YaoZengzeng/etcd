@@ -61,14 +61,14 @@ var (
 	grpcMaxCallRecvMsgSize         int
 
 	// tls for connecting to etcd
-
+	// 用来连接到etcd的tls
 	grpcProxyCA                    string
 	grpcProxyCert                  string
 	grpcProxyKey                   string
 	grpcProxyInsecureSkipTLSVerify bool
 
 	// tls for clients connecting to proxy
-
+	// client用来连接proxy的tls
 	grpcProxyListenCA      string
 	grpcProxyListenCert    string
 	grpcProxyListenKey     string
@@ -115,6 +115,7 @@ func newGRPCProxyStartCommand() *cobra.Command {
 	cmd.Flags().StringVar(&grpcProxyListenAddr, "listen-addr", "127.0.0.1:23790", "listen address")
 	cmd.Flags().StringVar(&grpcProxyDNSCluster, "discovery-srv", "", "domain name to query for SRV records describing cluster endpoints")
 	cmd.Flags().StringVar(&grpcProxyDNSClusterServiceName, "discovery-srv-name", "", "service name to query when using DNS discovery")
+	// 在额外的接口监听endpoints /metrics的请求
 	cmd.Flags().StringVar(&grpcProxyMetricsListenAddr, "metrics-addr", "", "listen for endpoint /metrics requests on an additional interface")
 	cmd.Flags().BoolVar(&grpcProxyInsecureDiscovery, "insecure-discovery", false, "accept insecure SRV records")
 	cmd.Flags().StringSliceVar(&grpcProxyEndpoints, "endpoints", []string{"127.0.0.1:2379"}, "comma separated etcd cluster endpoints")
@@ -134,6 +135,7 @@ func newGRPCProxyStartCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&grpcProxyInsecureSkipTLSVerify, "insecure-skip-tls-verify", false, "skip authentication of etcd server TLS certificates")
 
 	// client TLS for connecting to proxy
+	// client用于连接到Proxy的配置
 	cmd.Flags().StringVar(&grpcProxyListenCert, "cert-file", "", "identify secure connections to the proxy using this TLS certificate file")
 	cmd.Flags().StringVar(&grpcProxyListenKey, "key-file", "", "identify secure connections to the proxy using this TLS key file")
 	cmd.Flags().StringVar(&grpcProxyListenCA, "trusted-ca-file", "", "verify certificates of TLS-enabled secure proxy using this CA bundle")
@@ -171,6 +173,7 @@ func startGRPCProxy(cmd *cobra.Command, args []string) {
 	}
 	grpclog.SetLoggerV2(gl)
 
+	// 构建tls
 	tlsinfo := newTLS(grpcProxyListenCA, grpcProxyListenCert, grpcProxyListenKey)
 	if tlsinfo == nil && grpcProxyListenAutoTLS {
 		host := []string{"https://" + grpcProxyListenAddr}
@@ -312,6 +315,7 @@ func mustListenCMux(lg *zap.Logger, tlsinfo *transport.TLSInfo) cmux.CMux {
 	}
 	if tlsinfo != nil {
 		tlsinfo.CRLFile = grpcProxyListenCRL
+		// 构建tls listener
 		if l, err = transport.NewTLSListener(l, tlsinfo); err != nil {
 			lg.Fatal("failed to create TLS listener", zap.Error(err))
 		}
@@ -448,6 +452,7 @@ func mustMetricsListener(lg *zap.Logger, tlsinfo *transport.TLSInfo) net.Listene
 		fmt.Fprintf(os.Stderr, "cannot parse %q", grpcProxyMetricsListenAddr)
 		os.Exit(1)
 	}
+	// 构建listener
 	ml, err := transport.NewListener(murl.Host, murl.Scheme, tlsinfo)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

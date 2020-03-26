@@ -360,8 +360,10 @@ func (s *watchableStore) syncWatchers() int {
 	curRev := s.store.currentRev
 	compactionRev := s.store.compactMainRev
 
+	// 每次最多同步512个watcher
 	wg, minRev := s.unsynced.choose(maxWatchersPerSync, curRev, compactionRev)
 	minBytes, maxBytes := newRevBytes(), newRevBytes()
+	// key的范围为minRev到curRev+1
 	revToBytes(revision{main: minRev}, minBytes)
 	revToBytes(revision{main: curRev + 1}, maxBytes)
 
@@ -374,6 +376,7 @@ func (s *watchableStore) syncWatchers() int {
 	revs, vs := tx.UnsafeRange(keyBucketName, minBytes, maxBytes, 0)
 	var evs []mvccpb.Event
 	if s.store != nil && s.store.lg != nil {
+		// 将kv转为event
 		evs = kvsToEvents(s.store.lg, wg, revs, vs)
 	} else {
 		// TODO: remove this in v3.5
@@ -524,6 +527,7 @@ type watcher struct {
 	key []byte
 	// end indicates the end of the range to watch.
 	// If end is set, the watcher is on a range.
+	// end表示监听范围的尾部，如果设置了end，则wather监听的是一个range
 	end []byte
 
 	// victim is set when ch is blocked and undergoing victim processing
@@ -539,7 +543,9 @@ type watcher struct {
 	// watcher group, possibly with a future revision when it was first added
 	// to the synced watcher
 	// "unsynced" watcher revision must always be <= current revision,
+	// "unsynced" watcher的revision必须小于等于当前的revision
 	// except when the watcher were to be moved from "synced" watcher group
+	// 除非watcher被移除到"synced" wathcer group
 	restore bool
 
 	// minRev is the minimum revision update the watcher will accept

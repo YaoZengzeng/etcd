@@ -480,6 +480,7 @@ func (h *streamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := newCloseNotifier()
 	conn := &outgoingConn{
 		t:       t,
+		// 获取底层的writer和flusher
 		Writer:  w,
 		Flusher: w.(http.Flusher),
 		Closer:  c,

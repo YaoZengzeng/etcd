@@ -13,4 +13,5 @@
 // limitations under the License.
 
 // Package lease provides an interface and implementation for time-limited leases over arbitrary resources.
+// lease提供了对于任意资源的有着时间限制的leases的接口与实现
 package lease

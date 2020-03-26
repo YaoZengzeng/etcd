@@ -163,6 +163,7 @@ func (s *snapshotSender) post(req *http.Request) (err error) {
 	result := make(chan responseAndError, 1)
 
 	go func() {
+		// 利用pipeline发送请求
 		resp, err := s.tr.pipelineRt.RoundTrip(req)
 		if err != nil {
 			result <- responseAndError{resp, nil, err}

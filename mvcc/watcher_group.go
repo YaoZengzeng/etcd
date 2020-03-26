@@ -37,6 +37,7 @@ type eventBatch struct {
 	// revs是在这个batch里面最小的unique revisions
 	revs int
 	// moreRev is first revision with more events following this batch
+	// 当这个batch后面有更多的events时，moreRev是其中的第一个
 	moreRev int64
 }
 
@@ -155,6 +156,7 @@ type watcherGroup struct {
 	keyWatchers watcherSetByKey
 	// ranges has the watchers that watch a range; it is sorted by interval
 	// ranges包含了watch一个range的watchers，它通过interval来排序
+	// adt为红黑树
 	ranges adt.IntervalTree
 	// watchers is the set of all watchers
 	// watchers是所有watchers的集合
@@ -173,6 +175,7 @@ func newWatcherGroup() watcherGroup {
 func (wg *watcherGroup) add(wa *watcher) {
 	wg.watchers.add(wa)
 	if wa.end == nil {
+		// 如果是监听的一个key，直接加入到keyWatchers，否则加入红黑树
 		wg.keyWatchers.add(wa)
 		return
 	}
@@ -193,6 +196,7 @@ func (wg *watcherGroup) add(wa *watcher) {
 }
 
 // contains is whether the given key has a watcher in the group.
+// contains用于检测是否给定的key有watcher在这个group中
 func (wg *watcherGroup) contains(key string) bool {
 	_, ok := wg.keyWatchers[key]
 	return ok || wg.ranges.Intersects(adt.NewStringAffinePoint(key))

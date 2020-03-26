@@ -37,6 +37,8 @@ const (
 // msgappv2 stream sends three types of message: linkHeartbeatMessage,
 // AppEntries and MsgApp. AppEntries is the MsgApp that is sent in
 // replicate state in raft, whose index and term are fully predictable.
+// msgappv2 stream发送三种类型的message：linkHeartbeatMessage，AppEntreis以及MsgApp
+// AppEntries是在raft中发送replicate state，它的index以及term都是完全可以预测的
 //
 // Data format of linkHeartbeatMessage:
 // | offset | bytes | description |

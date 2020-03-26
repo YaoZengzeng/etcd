@@ -380,6 +380,7 @@ func NewServer(cfg ServerConfig) (srv *EtcdServer, err error) {
 			return nil, fmt.Errorf("incompatible with current running cluster")
 		}
 
+		// 只有在启动已有的cluster的时候，才会有remotes
 		remotes = existingCluster.Members()
 		cl.SetID(types.ID(0), existingCluster.ID())
 		cl.SetStore(st)

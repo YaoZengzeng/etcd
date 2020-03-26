@@ -79,6 +79,7 @@ type Checkpointer func(ctx context.Context, lc *pb.LeaseCheckpointRequest)
 type LeaseID int64
 
 // Lessor owns leases. It can grant, revoke, renew and modify leases for lessee.
+// Lessor拥有leases，它能够grant, revoke, renew以及mofiy leases
 type Lessor interface {
 	// SetRangeDeleter lets the lessor create TxnDeletes to the store.
 	// Lessor deletes the items in the revoked or expired lease by creating

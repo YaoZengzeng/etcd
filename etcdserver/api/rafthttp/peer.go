@@ -60,6 +60,8 @@ type Peer interface {
 	// and has no promise that the message will be received by the remote.
 	// When it fails to send message out, it will report the status to underlying
 	// raft.
+	// send发送message到远端的peer，这个函数是非阻塞的并且不保证message会被远端接收
+	// 当它发送message失败的时候，它会上报底层raft的状态
 	send(m raftpb.Message)
 
 	// sendSnap sends the merged snapshot message to the remote peer. Its behavior
@@ -73,6 +75,8 @@ type Peer interface {
 	// stream usage. After the call, the ownership of the outgoing
 	// connection hands over to the peer. The peer will close the connection
 	// when it is no longer used.
+	// attachOutgoingConn关联一个outgoing connection到peer用于stream
+	// 在调用之后，outgoing connection的ownership转移到peer，peer会在连接没有用的时候将其关闭
 	attachOutgoingConn(conn *outgoingConn)
 	// activeSince returns the time that the connection with the
 	// peer becomes active.
@@ -84,15 +88,21 @@ type Peer interface {
 
 // peer is the representative of a remote raft node. Local raft node sends
 // messages to the remote through peer.
+// peer代表一个远程的raft node，本地的raft node通过peer发送message到远程
 // Each peer has two underlying mechanisms to send out a message: stream and
 // pipeline.
+// 每个peer有两种机制用来发送message：stream以及pipeline
 // A stream is a receiver initialized long-polling connection, which
 // is always open to transfer messages. Besides general stream, peer also has
 // a optimized stream for sending msgApp since msgApp accounts for large part
 // of all messages. Only raft leader uses the optimized stream to send msgApp
 // to the remote follower node.
+// stream是一个用long-polling connection初始化的receiver，它总是打开用于发送messages
+// 除了一般的stream，peer还有优化的stream用来发送msgApp，因为msgApp占据了所有message的大部分
+// 只有raft leader用优化了的stream来发送msgApp到远程的follower节点
 // A pipeline is a series of http clients that send http requests to the remote.
 // It is only used when the stream has not been established.
+// pipeline是一系列的http clients发送http请求到远程，它只在stream还没有建立的时候使用
 type peer struct {
 	lg *zap.Logger
 
@@ -159,9 +169,11 @@ func startPeer(t *Transport, urls types.URLs, peerID types.ID, fs *stats.Followe
 		r:              r,
 		status:         status,
 		picker:         picker,
+		// 启动msgApp writer和普通writer
 		msgAppV2Writer: startStreamWriter(t.Logger, t.ID, peerID, status, fs, r),
 		writer:         startStreamWriter(t.Logger, t.ID, peerID, status, fs, r),
 		pipeline:       pipeline,
+		// 启动snapshot sender
 		snapSender:     newSnapshotSender(t, picker, peerID, status),
 		recvc:          make(chan raftpb.Message, recvBufSize),
 		propc:          make(chan raftpb.Message, maxPendingProposals),
@@ -194,6 +206,7 @@ func startPeer(t *Transport, urls types.URLs, peerID types.ID, fs *stats.Followe
 		for {
 			select {
 			case mm := <-p.propc:
+				// 调用raft进行处理
 				if err := r.Process(ctx, mm); err != nil {
 					plog.Warningf("failed to process raft message (%v)", err)
 				}
@@ -203,6 +216,7 @@ func startPeer(t *Transport, urls types.URLs, peerID types.ID, fs *stats.Followe
 		}
 	}()
 
+	// 构建两个stream reader
 	p.msgAppV2Reader = &streamReader{
 		lg:     t.Logger,
 		peerID: peerID,
@@ -355,10 +369,13 @@ func (p *peer) stop() {
 
 // pick picks a chan for sending the given message. The picked chan and the picked chan
 // string name are returned.
+// pick选择一个chan用于发送给定的message，返回选择的chan以及选择的chan string name
 func (p *peer) pick(m raftpb.Message) (writec chan<- raftpb.Message, picked string) {
 	var ok bool
 	// Considering MsgSnap may have a big size, e.g., 1G, and will block
 	// stream for a long time, only use one of the N pipelines to send MsgSnap.
+	// 考虑到MsgSnap有着很大的体积，比如1G，那么会阻塞stream很长的时间，因此只使用N个pipelines
+	// 发送MsgSnap
 	if isMsgSnap(m) {
 		return p.pipeline.msgc, pipelineMsg
 	} else if writec, ok = p.msgAppV2Writer.writec(); ok && isMsgApp(m) {

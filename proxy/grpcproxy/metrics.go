@@ -72,6 +72,7 @@ func HandleMetrics(mux *http.ServeMux, c *http.Client, eps []string) {
 	// random shuffle endpoints
 	r := rand.New(rand.NewSource(int64(time.Now().Nanosecond())))
 	if len(eps) > 1 {
+		// 如果指定了多个endpoints，在endpoints之间进行轮转
 		eps = shuffleEndpoints(r, eps)
 	}
 
@@ -83,9 +84,11 @@ func HandleMetrics(mux *http.ServeMux, c *http.Client, eps []string) {
 			if r.TLS != nil {
 				scheme = "https"
 			}
+			// 构成target
 			target = fmt.Sprintf("%s://%s", scheme, target)
 		}
 
+		// 调用c.Get(target)获取etcd endpoint的内容
 		resp, err := c.Get(target)
 		if err != nil {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)

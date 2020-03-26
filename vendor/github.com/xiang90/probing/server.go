@@ -21,5 +21,6 @@ type Health struct {
 func (h *httpHealth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	health := Health{OK: true, Now: time.Now()}
 	e := json.NewEncoder(w)
+	// 仅仅是返回Health结构体
 	e.Encode(health)
 }

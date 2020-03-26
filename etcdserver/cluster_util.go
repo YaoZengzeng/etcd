@@ -34,6 +34,7 @@ import (
 
 // isMemberBootstrapped tries to check if the given member has been bootstrapped
 // in the given cluster.
+// isMemberBootstrapped试着检查给定的member是否已经在给定的cluster启动
 func isMemberBootstrapped(lg *zap.Logger, cl *membership.RaftCluster, member string, rt http.RoundTripper, timeout time.Duration) bool {
 	rcl, err := getClusterFromRemotePeers(lg, getRemotePeerURLs(cl, member), timeout, false, rt)
 	if err != nil {
@@ -68,6 +69,7 @@ func getClusterFromRemotePeers(lg *zap.Logger, urls []string, timeout time.Durat
 		Timeout:   timeout,
 	}
 	for _, u := range urls {
+		// 访问Peer的/members接口
 		addr := u + "/members"
 		resp, err := cc.Get(addr)
 		if err != nil {
@@ -124,6 +126,7 @@ func getClusterFromRemotePeers(lg *zap.Logger, urls []string, timeout time.Durat
 		// if the membership members are present then prepare and return raft cluster
 		// if membership members are not present then the raft cluster formed will be
 		// an invalid empty cluster hence return failed to get raft cluster member(s) from the given urls error
+		// 检查membership members的长度，如果membership members存在，则准备并且返回raft cluster
 		if len(membs) > 0 {
 			return membership.NewClusterFromMembers(lg, "", id, membs), nil
 		}

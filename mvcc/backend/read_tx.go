@@ -56,6 +56,7 @@ func (rt *readTx) Unlock()  { rt.mu.Unlock() }
 func (rt *readTx) RLock()   { rt.mu.RLock() }
 func (rt *readTx) RUnlock() { rt.mu.RUnlock() }
 
+// UnsafeRange从某个bucket中，取出key, endKey范围内不超过limit个的键值对
 func (rt *readTx) UnsafeRange(bucketName, key, endKey []byte, limit int64) ([][]byte, [][]byte) {
 	if endKey == nil {
 		// forbid duplicates for single keys

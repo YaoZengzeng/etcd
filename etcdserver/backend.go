@@ -47,6 +47,7 @@ func newBackend(cfg ServerConfig) backend.Backend {
 	bcfg.Logger = cfg.Logger
 	if cfg.QuotaBackendBytes > 0 && cfg.QuotaBackendBytes != DefaultQuotaBytes {
 		// permit 10% excess over quota for disarm
+		// 允许超过quota 10%而不产生告警
 		bcfg.MmapSize = uint64(cfg.QuotaBackendBytes + cfg.QuotaBackendBytes/10)
 	}
 	// 创建后端存储backend
@@ -68,6 +69,7 @@ func openSnapshotBackend(cfg ServerConfig, ss *snap.Snapshotter, snapshot raftpb
 // openBackend returns a backend using the current etcd db.
 // openBackend返回一个backend，使用当前的etcd db
 func openBackend(cfg ServerConfig) backend.Backend {
+	// backend位于snap目录之下的db
 	fn := cfg.backendPath()
 
 	now, beOpened := time.Now(), make(chan backend.Backend)
